@@ -4,3 +4,5 @@
 *.pth.tar
 *.pth
 *.nyu.cluster
+*.log
+*.out  
