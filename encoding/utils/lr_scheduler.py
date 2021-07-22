@@ -78,6 +78,6 @@ class LR_Scheduler_Head(LR_Scheduler):
             optimizer.param_groups[0]['lr'] = lr
         else:
             # enlarge the lr at the head
-            optimizer.param_groups[0]['lr'] = max(lr, self.min_lr)
+            optimizer.param_groups[0]['lr'] = lr
             for i in range(1, len(optimizer.param_groups)):
-                optimizer.param_groups[i]['lr'] = max(lr * 10, self.min_lr)
+                optimizer.param_groups[i]['lr'] = lr*10

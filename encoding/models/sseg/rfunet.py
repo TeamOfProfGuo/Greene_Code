@@ -11,6 +11,7 @@ from ...nn import PosAtt0, PosAtt1, PosAtt2, PosAtt3, PosAtt3a, PosAtt3c, PosAtt
 from ...nn import PosAtt7, PosAtt7a, PosAtt7b, PosAtt7d, PosAtt9, PosAtt9a, CMPA1, CMPA1a, CMPA2, CMPA2a
 from ...nn import ContextBlock, FPA
 from ...nn import Fuse_Block, LevelFuse
+from ..backbone import get_resnet18
 
 # RFUNet: Res Fuse U-Net
 __all__ = ['RFUNet', 'get_rfunet']
@@ -25,18 +26,11 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 
 class RFUNet(nn.Module):
-    def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, root='./encoding/models/pretrain',
-                 mmf_att=None, mrf_att=None, **kwargs):
+    def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
+                 fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
         super(RFUNet, self).__init__()
         print('++++++{}+++++++'.format(kwargs))
-        self.base = models.resnet18(pretrained=False)
-        if pretrained:
-            if backbone == 'resnet18':
-                f_path = os.path.abspath(os.path.join(root, 'resnet18-5c106cde.pth'))
-            if not os.path.exists(f_path):
-                raise FileNotFoundError('the pretrained model can not be found')
-            self.base.load_state_dict(torch.load(f_path), strict=False)
-
+        self.base = get_resnet18(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
         self.dep_base = copy.deepcopy(self.base)
         self.dep_base.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
 
@@ -54,14 +48,16 @@ class RFUNet(nn.Module):
         self.d_layer3 = self.dep_base.layer3
         self.d_layer4 = self.dep_base.layer4
 
-        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type='gau', **kwargs)
-        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type='gau', **kwargs)
-        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type='gau', **kwargs)
-        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type='gau', **kwargs)
-        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type='gau', **kwargs)
+        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
+        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
+        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
+        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
+        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
 
-        self.up4 = nn.Sequential(BasicBlock(512, 512), BasicBlock(512, 256, upsample=True))
-        self.up3 = nn.Sequential(BasicBlock(256, 256), BasicBlock(256, 128, upsample=True))
+        upsample4 = True if dilation <= 1 else False
+        upsample3 = True if dilation <= 2 else False
+        self.up4 = nn.Sequential(BasicBlock(512, 512), BasicBlock(512, 256, upsample=upsample4))
+        self.up3 = nn.Sequential(BasicBlock(256, 256), BasicBlock(256, 128, upsample=upsample3))
         self.up2 = nn.Sequential(BasicBlock(128, 128), BasicBlock(128, 64, upsample=True))
 
         self.level_fuse3 = LevelFuse(256, mrf_att=mrf_att)
@@ -109,9 +105,9 @@ class RFUNet(nn.Module):
         return out
 
 
-def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, root='./encoding/models/pretrain',
-               mmf_att=None, mrf_att=None, **kwargs):
+def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
+               fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
     from ...datasets import datasets
-    model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, root=root,
-                   mmf_att=mmf_att, mrf_att=mrf_att, **kwargs)
+    model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
+                   fuse_type=fuse_type, mmf_att=mmf_att, mrf_att=mrf_att, **kwargs)
     return model
