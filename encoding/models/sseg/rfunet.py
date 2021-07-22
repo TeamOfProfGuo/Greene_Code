@@ -26,9 +26,9 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, root='./encoding/models/pretrain',
-                 mmf_att=None, mrf_att=None):
+                 mmf_att=None, mrf_att=None, **kwargs):
         super(RFUNet, self).__init__()
-
+        print('++++++{}+++++++'.format(kwargs))
         self.base = models.resnet18(pretrained=False)
         if pretrained:
             if backbone == 'resnet18':
@@ -54,11 +54,11 @@ class RFUNet(nn.Module):
         self.d_layer3 = self.dep_base.layer3
         self.d_layer4 = self.dep_base.layer4
 
-        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type='gau')
-        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type='gau')
-        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type='gau')
-        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type='gau')
-        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type='gau')
+        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type='gau', **kwargs)
+        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type='gau', **kwargs)
+        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type='gau', **kwargs)
+        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type='gau', **kwargs)
+        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type='gau', **kwargs)
 
         self.up4 = nn.Sequential(BasicBlock(512, 512), BasicBlock(512, 256, upsample=True))
         self.up3 = nn.Sequential(BasicBlock(256, 256), BasicBlock(256, 128, upsample=True))
@@ -110,8 +110,8 @@ class RFUNet(nn.Module):
 
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, root='./encoding/models/pretrain',
-               mmf_att=None, mrf_att=None ):
+               mmf_att=None, mrf_att=None, **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, root=root,
-                   mmf_att=mmf_att, mrf_att=mrf_att )
+                   mmf_att=mmf_att, mrf_att=mrf_att, **kwargs)
     return model
