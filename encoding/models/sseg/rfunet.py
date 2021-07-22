@@ -10,6 +10,7 @@ from ...nn import BasicBlock, AttGate1, AttGate2, AttGate3, AttGate3a, AttGate3b
 from ...nn import PosAtt0, PosAtt1, PosAtt2, PosAtt3, PosAtt3a, PosAtt3c, PosAtt4, PosAtt4a, PosAtt5, PosAtt6, PosAtt6a
 from ...nn import PosAtt7, PosAtt7a, PosAtt7b, PosAtt7d, PosAtt9, PosAtt9a, CMPA1, CMPA1a, CMPA2, CMPA2a
 from ...nn import ContextBlock, FPA
+from ...nn import Fuse_Block, LevelFuse
 
 # RFUNet: Res Fuse U-Net
 __all__ = ['RFUNet', 'get_rfunet']
@@ -53,11 +54,11 @@ class RFUNet(nn.Module):
         self.d_layer3 = self.dep_base.layer3
         self.d_layer4 = self.dep_base.layer4
 
-        self.fuse0 = RGBDFuse(64, mmf_att=mmf_att, shape=(240, 240))
-        self.fuse1 = RGBDFuse(64, mmf_att=mmf_att, shape=(120, 120))
-        self.fuse2 = RGBDFuse(128,mmf_att=mmf_att, shape=(60, 60))
-        self.fuse3 = RGBDFuse(256,mmf_att=mmf_att, shape=(30, 30))
-        self.fuse4 = RGBDFuse(512,mmf_att=mmf_att, shape=(15, 15))
+        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type='gau')
+        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type='gau')
+        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type='gau')
+        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type='gau')
+        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type='gau')
 
         self.up4 = nn.Sequential(BasicBlock(512, 512), BasicBlock(512, 256, upsample=True))
         self.up3 = nn.Sequential(BasicBlock(256, 256), BasicBlock(256, 128, upsample=True))
@@ -114,49 +115,3 @@ def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, root='./enc
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, root=root,
                    mmf_att=mmf_att, mrf_att=mrf_att )
     return model
-
-
-class RGBDFuse(nn.Module):
-    def __init__(self, in_ch, mmf_att=None, shape=None, **kwargs):
-        super().__init__()
-
-        self.mmf_att = mmf_att 
-
-        self.mode = 'late' if mmf_att in ['CA0', 'CA4c', 'CA5c', 'CB', 'PA9', 'PA9a'] else 'early' 
-        print('fusion model {}'.format(self.mode))
-
-        if self.mode == 'late':
-            self.rgb_att = Module_Dict[self.mmf_att](in_ch, shape, **kwargs)
-            self.dep_att = Module_Dict[self.mmf_att](in_ch, shape, **kwargs)
-        else:
-            self.att_module = Module_Dict[self.mmf_att](in_ch, shape, **kwargs)
-
-
-    def forward(self, x, dep):
-        batch_size, ch, _, _ = x.size()
-        if self.mode == 'late': 
-            out = self.rgb_att(x) + self.dep_att(dep)
-        
-        elif self.mode == 'early':  
-            out = self.att_module(x, dep)      # 'CA6'这里需要注意顺序，rgb在前面，dep在后面，对dep进行reweight
-        return out, dep
-
-
-class LevelFuse(nn.Module):
-    def __init__(self, in_ch, mrf_att=None):
-        super().__init__()
-        self.mrf_att = mrf_att
-        if mrf_att == 'PA0':
-            self.att_module = PosAtt0(ch=in_ch)
-            self.out_conv = nn.Conv2d(in_ch * 2, in_ch, kernel_size=1, stride=1)
-        elif mrf_att == 'CA6':
-            self.att_module = AttGate6(in_ch=in_ch)
-
-    def forward(self, c, x):
-        if self.mrf_att in ['CA6']:
-            return self.att_module(c, x) # 注意深层feature在前，浅层feature在后，对浅层feature进行变换
-        elif self.mrf_att == 'PA0':
-            x = self.att_module(c, x)
-            return self.out_conv( torch.cat((c, x), dim=1) )
-        else:
-            return c + x

@@ -19,4 +19,5 @@ from .refine import *
 from .chaatt import *
 from .posatt import *
 from .att import *
-from .basic import * 
+from .basic import *
+from .fuse import *
