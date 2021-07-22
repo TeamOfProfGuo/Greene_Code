@@ -29,9 +29,10 @@ class LR_Scheduler(object):
         iters_per_epoch: number of iterations per epoch
     """
     def __init__(self, mode, base_lr, num_epochs, iters_per_epoch=0,
-                 lr_step=0, warmup_epochs=0, quiet=False):
+                 lr_step=0, warmup_epochs=0, quiet=False, min_lr=1e-6):
         self.mode = mode
         self.quiet = quiet
+        self.min_lr = min_lr
         if not quiet:
             print('Using {} LR scheduler with warm-up epochs of {}!'.format(self.mode, warmup_epochs))
         if mode == 'step':
@@ -77,6 +78,6 @@ class LR_Scheduler_Head(LR_Scheduler):
             optimizer.param_groups[0]['lr'] = lr
         else:
             # enlarge the lr at the head
-            optimizer.param_groups[0]['lr'] = lr
+            optimizer.param_groups[0]['lr'] = max(lr, self.min_lr)
             for i in range(1, len(optimizer.param_groups)):
-                optimizer.param_groups[i]['lr'] = lr * 10
+                optimizer.param_groups[i]['lr'] = max(lr * 10, self.min_lr)
