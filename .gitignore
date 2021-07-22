@@ -3,3 +3,4 @@
 *.pyc
 *.pth.tar
 *.pth
+*.nyu.cluster
