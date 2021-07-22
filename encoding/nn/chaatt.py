@@ -304,7 +304,7 @@ class AttGate6(nn.Module):
     def __init__(self, in_ch, shape=None, r=None, update_dep=False):
         super().__init__()
         # 参考PAN x 为浅层网络，y为深层网络
-        self.update_dep = False
+        self.update_dep = update_dep
         self.x_conv = nn.Sequential(nn.Conv2d(in_ch, in_ch, kernel_size=3, padding=1, bias=False),
                                     nn.BatchNorm2d(in_ch))
 

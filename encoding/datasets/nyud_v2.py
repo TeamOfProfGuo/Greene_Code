@@ -13,10 +13,10 @@ class NYUD(BaseDataset):
 
     NUM_CLASS = 40
     CWD = os.getcwd()
-    if os.path.dirname(CWD).endswith('SSeg'):
-        TRAIN_BASE_DIR = '../dataset/NYUD_v2/'
-    else:
+    if os.path.dirname(CWD).endswith('experiments'):
         TRAIN_BASE_DIR = '../../../dataset/NYUD_v2'
+    else:
+        TRAIN_BASE_DIR = '../dataset/NYUD_v2/'
 
     def __init__(self, root=os.path.expanduser('~/.encoding/data'), split='train',
                  mode=None, transform=None, dep_transform=None, target_transform=None, **kwargs):
