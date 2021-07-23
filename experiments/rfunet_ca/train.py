@@ -28,6 +28,7 @@ GPUS = [0, 1]
 
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
+parser.add_argument('--fuse_type', type=str, default='1stage', help='Fuse type to fuse rgb and dep')
 parser.add_argument('--mmf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
 settings = parser.parse_args()
 print(settings)
@@ -56,9 +57,10 @@ class Trainer():
         self.nclass = trainset.num_class
 
         # model and params
+        model_kwargs = settings.__dict__
         model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True,
                                        root='../../encoding/models/pretrain',
-                                       mmf_att=settings.mmf_att)
+                                       **model_kwargs)
         print(model)
         # optimizer using different LR
         base_ids = list(map(id, model.base.parameters()))
@@ -144,6 +146,8 @@ class Trainer():
         print('epoch {}, pixel Acc {}, mean IOU {}'.format(epoch + 1, pixAcc, mIOU))
         self.writer.add_scalar("mean_iou/train", mIOU, epoch)
         self.writer.add_scalar("pixel accuracy/train", pixAcc, epoch)
+        self.writer.add_scalar('check_info/base_lr0', self.optimizer.param_groups[0]['lr'], epoch)
+        self.writer.add_scalar('check_info/other_lr1', self.optimizer.param_groups[1]['lr'], epoch)
 
     def train_n_evaluate(self):
 
@@ -167,7 +171,7 @@ class Trainer():
                 self.best_pred = new_pred
             path = 'runs/' + "/".join(("{}-{}".format(*i) for i in settings.__dict__.items()))
             utils.save_checkpoint({'epoch': epoch + 1,
-                                   'state_dict': self.model.module.state_dict(),
+                                   'state_dict': self.model.state_dict(),
                                    'optimizer': self.optimizer.state_dict(),
                                    'best_pred': self.best_pred}, self.args, is_best, path = path)
 

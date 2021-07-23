@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=rfu_ca6
+#SBATCH --job-name=rfu_ca3
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
@@ -8,7 +8,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=lg154@nyu.edu
-#SBATCH --output=rfu_ca6.out
+#SBATCH --output=rfu_ca3.out
 #SBATCH --gres=gpu # How much gpu need, n is the number
 
 module purge
@@ -19,5 +19,5 @@ module load cuda/10.2.89
 #module load cudnn/7.5
 
 mkdir -p log 
-python train.py --mmf_att 'CA6' >log/train_ca6.log 2>& 1
+python train.py --mmf_att 'CA3' >log/train_ca3.log 2>& 1
 echo "FINISH"
