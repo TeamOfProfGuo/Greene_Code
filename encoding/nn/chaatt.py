@@ -301,7 +301,7 @@ class AttGate5c(nn.Module):
 
 
 class AttGate6(nn.Module):
-    def __init__(self, in_ch, shape=None, r=None, update_dep=False):
+    def __init__(self, in_ch, shape=None, r=None, update_dep=False, act_fn=None):
         super().__init__()
         # 参考PAN x 为浅层网络，y为深层网络
         self.update_dep = update_dep
@@ -312,12 +312,21 @@ class AttGate6(nn.Module):
         self.y_conv = nn.Sequential(nn.Conv2d(in_ch, in_ch, kernel_size=1, padding=0, bias=False),
                                     nn.BatchNorm2d(in_ch),
                                     nn.ReLU(inplace=True))
+        if act_fn == 'tanh':
+            self.activation = nn.Tanh()
+        elif act_fn == 'sigmoid':
+            self.activation = nn.Sigmoid()
+        else:
+            self.activation = None
+
 
     def forward(self, y, x):
         x1 = self.x_conv(x)      # [B, c, h, w]
 
         y1 = self.y_gap(y)       # [B, c, 1, 1]
         y1 = self.y_conv(y1)     # [B, c, 1, 1]
+        if self.activation:
+            y1 = self.activation(y1)
 
         weighted_x = y1*x1
         if self.update_dep:    # y is rgb, x is dep

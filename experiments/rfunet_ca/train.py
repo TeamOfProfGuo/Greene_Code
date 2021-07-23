@@ -30,8 +30,11 @@ GPUS = [0, 1]
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--fuse_type', type=str, default='1stage', help='Fuse type to fuse rgb and dep')
 parser.add_argument('--mmf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
+parser.add_argument('--act_fn', type=str, default=None, help='Attention type to fuse rgb and dep')
 settings = parser.parse_args()
 print(settings)
+model_kwargs = settings.__dict__
+model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 
 
 class Trainer():
@@ -57,7 +60,6 @@ class Trainer():
         self.nclass = trainset.num_class
 
         # model and params
-        model_kwargs = settings.__dict__
         model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True,
                                        root='../../encoding/models/pretrain',
                                        **model_kwargs)
