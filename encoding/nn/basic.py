@@ -17,6 +17,11 @@ class BasicBlock(nn.Module):
         if not upsample:
             self.conv2 = nn.Sequential(nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False),
                                        nn.BatchNorm2d(planes))
+            if planes!= inplanes:
+                self.up = nn.Sequential(nn.Conv2d(inplanes, planes, kernel_size=1, stride=1, bias=False),
+                                        nn.BatchNorm2d(planes))
+            else:
+                self.up = None
         else:
             self.conv2=nn.Sequential(nn.ConvTranspose2d(planes, planes, kernel_size=2, stride=2, padding=0, bias=False),
                                      nn.BatchNorm2d(planes))
@@ -25,7 +30,7 @@ class BasicBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        if self.upsample:
+        if self.up is not None:
             identity = self.up(x)
         else:
             identity = x
