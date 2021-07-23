@@ -20,17 +20,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e454457a-9806-4f5c-8d06-8bcd1de6e490" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train_dep.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train_dep_u.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train_dep_ua.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train_rgb.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train_rgb_d.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/experiments/gau/train_rgb_da.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/models/sseg/rfunet.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/models/sseg/rfunet.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/nn/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/encoding/nn/chaatt.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/chaatt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/nn/fuse.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/fuse.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

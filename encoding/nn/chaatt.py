@@ -55,7 +55,7 @@ class AttGate1(nn.Module):
 
 
 class AttGate2(nn.Module):
-    def __init__(self, in_ch, M=2, r=4, ret_att=False):
+    def __init__(self, in_ch, shape=None, M=2, r=4, ret_att=False):
         """ Attention as in SKNet (selective kernel)
         Args:
             features/in_ch: input channel dimensionality.
@@ -104,7 +104,7 @@ class AttGate2(nn.Module):
 
 
 class AttGate3(nn.Module):
-    def __init__(self, in_ch, M=2, r=4):
+    def __init__(self, in_ch, shape=None, M=2, r=4):
         # 输入特征的通道数， 2个分支，bottle-net layer的 reduction rate
         super(AttGate3, self).__init__()
         d = max(int(in_ch*2 / r), 32)
