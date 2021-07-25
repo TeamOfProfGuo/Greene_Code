@@ -29,7 +29,10 @@ class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
                  fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
         super(RFUNet, self).__init__()
-        print('++++++{}+++++++'.format(kwargs))
+        self.mmf_args = {k:v for k, v in kwargs.items() if not k.startswith('mrf')}
+        self.mrf_args = {k.replace('mrf_', ''):v for k, v in kwargs.items() if k.startswith('mrf')}
+        print('++++++mmf_args:{}+++++++mrf_args:{}+++++++'.format(self.mmf_args, self.mrf_args))
+
         self.base = get_resnet18(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
         self.dep_base = copy.deepcopy(self.base)
         self.dep_base.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
@@ -48,11 +51,11 @@ class RFUNet(nn.Module):
         self.d_layer3 = self.dep_base.layer3
         self.d_layer4 = self.dep_base.layer4
 
-        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
-        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
-        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
-        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
-        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type=fuse_type, **kwargs)
+        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
+        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
+        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
+        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
+        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
 
         upsample4 = True if dilation <= 1 else False
         upsample3 = True if dilation <= 2 else False
@@ -60,9 +63,9 @@ class RFUNet(nn.Module):
         self.up3 = nn.Sequential(BasicBlock(256, 256), BasicBlock(256, 128, upsample=upsample3))
         self.up2 = nn.Sequential(BasicBlock(128, 128), BasicBlock(128, 64, upsample=True))
 
-        self.level_fuse3 = LevelFuse(256, mrf_att=mrf_att)
-        self.level_fuse2 = LevelFuse(128, mrf_att=mrf_att)
-        self.level_fuse1 = LevelFuse(64, mrf_att=mrf_att)
+        self.level_fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
+        self.level_fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
+        self.level_fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
 
         self.out_conv = nn.Sequential(BasicBlock(64, 128, upsample=True), BasicBlock(128, 128),
                                       nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
@@ -92,13 +95,13 @@ class RFUNet(nn.Module):
         l4, _ = self.fuse4(l4, d4)  # [B, 512, h/32, w/32]
 
         y4 = self.up4(l4)  # [B, 256, h/16, w/16]
-        y3 = self.level_fuse3(y4, l3)
+        y3, _ = self.level_fuse3(y4, l3)
 
         y3 = self.up3(y3)  # [B, 128, h/8, w/8]
-        y2 = self.level_fuse2(y3, l2)  # [B, 128, h/8, w/8]
+        y2, _ = self.level_fuse2(y3, l2)  # [B, 128, h/8, w/8]
 
         y2 = self.up2(y2)  # [B, 64, h/4, w/4]
-        y1 = self.level_fuse1(y2, l1)  # [B, 64, h/4, w/4]
+        y1, _ = self.level_fuse1(y2, l1)  # [B, 64, h/4, w/4]
 
         out = self.out_conv(y1)
         out = F.interpolate(out, (h, w), mode='bilinear', align_corners=True)

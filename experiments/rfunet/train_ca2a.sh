@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=rfu
+#SBATCH --job-name=ca2a
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
@@ -8,7 +8,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=lg154@nyu.edu
-#SBATCH --output=rfu.out
+#SBATCH --output=ca2a.out
 #SBATCH --gres=gpu # How much gpu need, n is the number
 
 module purge
@@ -19,5 +19,5 @@ module load cuda/10.2.89
 #module load cudnn/7.5
 
 mkdir -p log
-python train.py >log/train.log 2>& 1
+python train.py --mmf_att 'CA2a' --act_fn 'sigmoid' >log/train_ca2a.log 2>& 1
 echo "FINISH"

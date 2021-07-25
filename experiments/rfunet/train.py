@@ -17,11 +17,9 @@ import torch.nn as nn
 from torch.utils import data
 from tensorboardX import SummaryWriter
 import torchvision.transforms as transform
-from torch.nn.parallel.scatter_gather import gather
 
 import encoding.utils as utils
-from encoding.nn import SegmentationLosses, SyncBatchNorm
-from encoding.parallel import DataParallelModel, DataParallelCriterion
+from encoding.nn import SegmentationLosses
 from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 CONFIG_PATH = './results/config.yaml'
@@ -31,8 +29,14 @@ GPUS = [0, 1]
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--mmf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
+parser.add_argument('--act_fn', type=str, default=None, help='Attention type to fuse rgb and dep')
+parser.add_argument('--mrf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
+parser.add_argument('--mrf_act_fn', type=str, default=None, help='Attention type to fuse rgb and dep')
+
 settings = parser.parse_args()
 print(settings)
+model_kwargs = settings.__dict__
+model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 
 
 class Trainer():
@@ -60,7 +64,7 @@ class Trainer():
         # model and params
         model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True,
                                        root='../../encoding/models/pretrain',
-                                       mmf_att=settings.mmf_att)
+                                       **model_kwargs)
         print(model)
         # optimizer using different LR
         base_ids = list(map(id, model.base.parameters()))
@@ -88,6 +92,9 @@ class Trainer():
             if torch.cuda.device_count() > 1:
                 print("Let's use", torch.cuda.device_count(), "GPUs!")  # [30,xxx]->[10,...],[10,...],[10,...] on 3 GPUs
                 model = nn.DataParallel(model, device_ids=GPUS)
+                self.multi_gpu = True
+            else:
+                self.multi_gpu = False
         self.model = model.to(self.device)
 
         # for writing summary
@@ -99,7 +106,7 @@ class Trainer():
                 raise RuntimeError("=> no checkpoint found at '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
-            if args.cuda:
+            if self.multi_gpu:
                 self.model.module.load_state_dict(checkpoint['state_dict'])
             else:
                 self.model.load_state_dict(checkpoint['state_dict'])
@@ -143,6 +150,8 @@ class Trainer():
         print('epoch {}, pixel Acc {}, mean IOU {}'.format(epoch + 1, pixAcc, mIOU))
         self.writer.add_scalar("mean_iou/train", mIOU, epoch)
         self.writer.add_scalar("pixel accuracy/train", pixAcc, epoch)
+        self.writer.add_scalar('check_info/base_lr0', self.optimizer.param_groups[0]['lr'], epoch)
+        self.writer.add_scalar('check_info/other_lr1', self.optimizer.param_groups[1]['lr'], epoch)
 
     def train_n_evaluate(self):
 
@@ -164,10 +173,11 @@ class Trainer():
             if new_pred > self.best_pred:
                 is_best = True
                 self.best_pred = new_pred
+            path = 'runs/' + "/".join(("{}-{}".format(*i) for i in settings.__dict__.items()))
             utils.save_checkpoint({'epoch': epoch + 1,
-                                   'state_dict': self.model.module.state_dict(),
+                                   'state_dict': self.model.state_dict(),
                                    'optimizer': self.optimizer.state_dict(),
-                                   'best_pred': self.best_pred}, self.args, is_best)
+                                   'best_pred': self.best_pred}, self.args, is_best, path = path)
 
     def validation(self, epoch):
         # Fast test during the training
