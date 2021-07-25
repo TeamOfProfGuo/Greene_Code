@@ -5,7 +5,7 @@ import torch.nn as nn
 from functools import reduce
 from torch.nn import Module, Softmax, Parameter
 from .center import PyramidPooling
-__all__ = ['AttGate1', 'AttGate2', 'AttGate3', 'AttGate3a', 'AttGate3b', 'AttGate4c', 'AttGate5c', 'AttGate6', 'AttGate9']
+__all__ = ['AttGate1', 'AttGate2', 'AttGate2a', 'AttGate3', 'AttGate3a', 'AttGate3b', 'AttGate4c', 'AttGate5c', 'AttGate6', 'AttGate9']
 
 
 # class AttGate2(Module):
@@ -101,6 +101,53 @@ class AttGate2(nn.Module):
             return feats_V, attention_vectors
         else:
             return feats_V
+
+
+class AttGate2a(nn.Module):
+    def __init__(self, in_ch, shape=None, r=4, act_fn=None):
+        """ Attention as in SKNet (selective kernel) """
+        super().__init__()
+        d = max(int(in_ch / r), 32)
+        self.act_fn = act_fn
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))
+        # to calculate Z
+        self.fc = nn.Sequential(nn.Conv2d(in_ch, d, kernel_size=1, stride=1, bias=False),
+                                nn.BatchNorm2d(d),
+                                nn.ReLU(inplace=True))
+        # 各个分支
+        self.fc_x = nn.Conv2d(d, in_ch, kernel_size=1, stride=1)
+        self.fc_y = nn.Conv2d(d, in_ch, kernel_size=1, stride=1)
+        if act_fn == 'sigmoid':
+            self.act_x = nn.Sigmoid()
+            self.act_y = nn.Sigmoid()
+        elif act_fn == 'tanh':
+            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
+            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
+        elif act_fn == 'rsigmoid':
+            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
+            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
+        elif act_fn == 'softmax':
+            self.act = nn.Softmax(dim=1)
+
+    def forward(self, x, y):
+        U = x+y
+        batch_size, ch, _, _ = U.size()
+
+        S = self.gap(U)     # [B, c, 1, 1]
+        Z = self.fc(S)      # [B, d, 1, 1]
+
+        z_x = self.fc_x(Z)  # [B, c, 1, 1]
+        z_y = self.fc_y(Z)  # [B, c, 1, 1]
+        if self.act_fn in ['sigmoid', 'tanh', 'rsigmoid']:
+            w_x = self.act_x(z_x)    # [B, c, 1, 1]
+            w_y = self.act_y(z_y)    # [B, c, 1, 1]
+        elif self.act_fn == 'softmax':
+            w_xy = torch.cat((z_x, z_y), dim=1)        # [B, 2c, 1, 1]
+            w_xy = w_xy.view(batch_size, 2, ch, 1, 1)  # [B, 2, c, 1, 1]
+            w_xy = self.act(w_xy)                      # [B, 2, c, 1, 1]
+            w_x, w_y = w_xy[:, 0], w_xy[:, 1]          # [B, c, 1, 1]
+        out = w_x*x + w_y*y
+        return out
 
 
 class AttGate3(nn.Module):
