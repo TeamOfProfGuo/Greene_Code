@@ -28,7 +28,7 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = './results/config.yaml'
+CONFIG_PATH = 'experiments/rfunet_ca/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
@@ -36,9 +36,13 @@ GPUS = [0,1]
 # =====================  setup  ======================
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
-parser.add_argument('--mmf_att', type=str, default='CA6', help='Attention type to fuse rgb and dep')
+parser.add_argument('--mmf_att', type=str, default='CA2a', help='Attention type to fuse rgb and dep')
+parser.add_argument('--act_fn', type=str, default='softmax', help='Attention type to fuse rgb and dep')
 settings = parser.parse_args([])
 print(settings)
+
+model_kwargs = settings.__dict__
+model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 
 # configuration
 args = Dict(yaml.safe_load(open(CONFIG_PATH)))
@@ -69,7 +73,7 @@ nclass = trainset.num_class
 
 # model
 model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True,
-                               root='../../encoding/models/pretrain', mmf_att=settings.mmf_att)
+                               root='./encoding/models/pretrain', **model_kwargs)
 
 print(model)
 

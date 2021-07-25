@@ -145,7 +145,7 @@ class AttGate2a(nn.Module):
             w_xy = torch.cat((z_x, z_y), dim=1)        # [B, 2c, 1, 1]
             w_xy = w_xy.view(batch_size, 2, ch, 1, 1)  # [B, 2, c, 1, 1]
             w_xy = self.act(w_xy)                      # [B, 2, c, 1, 1]
-            w_x, w_y = w_xy[:, 0], w_xy[:, 1]          # [B, c, 1, 1]
+            w_x, w_y = w_xy[:, 0].contiguous(), w_xy[:, 1].contiguous()      # [B, c, 1, 1]
         out = w_x*x + w_y*y
         return out
 
