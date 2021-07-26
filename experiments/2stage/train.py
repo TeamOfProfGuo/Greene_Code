@@ -30,7 +30,7 @@ GPUS = [0, 1]
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--fuse_type', type=str, default='1stage', help='Attention type of multi-resolution fusion')
 parser.add_argument('--mmf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
-parser.add_argument('--mode', type=str, default='early', help='process the feature map after first Att Module')
+parser.add_argument('--mode', type=str, default=None, help='process the feature map after first Att Module')
 parser.add_argument('--proc', type=str, default=None, help='process the feature map after first Att Module')
 parser.add_argument('--param', action='store_true', default=False, help='whether to include trainable param')
 # parser.add_argument('--mrf_fuse_type', type=str, default='1stage', help='Attention type of multi-resolution fusion')
