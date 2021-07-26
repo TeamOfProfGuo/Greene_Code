@@ -29,7 +29,7 @@ def last_zero_init(m):
 
 class ContextBlock(nn.Module):
 
-    def __init__(self,in_ch, r=8, fusion_types=('channel_add', )):
+    def __init__(self, in_ch, shape=None, r=8, fusion_types=('channel_add', )):
         super(ContextBlock, self).__init__()
         assert isinstance(fusion_types, (list, tuple))
         valid_fusion_types = ['channel_add', 'channel_mul']

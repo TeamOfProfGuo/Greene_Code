@@ -85,56 +85,77 @@ class GAU_Fuse(nn.Module):
             else:
                 return rgb_out, d
 
+
+def get_proc(proc, in_ch):
+    if proc is None:
+        return None
+    proc_module = nn.Sequential()
+    if 'c' in proc:
+        proc_module.add_module('conv',nn.Conv2d(in_ch, in_ch, kernel_size=3, padding=1))
+    if 'b' in proc:
+        proc_module.add_module('bn',nn.BatchNorm2d(in_ch))
+    if 'r' in proc:
+        proc_module.add_module('relu',nn.ReLU(inplace=True))
+    return proc_module
+
+def parse_att(mmf_att):
+    if '_' in mmf_att or '+' in mmf_att or '^' in mmf_att:
+        module_list = re.split('\_|\+', mmf_att)
+    if '_' in mmf_att:
+        ops = '_'
+    elif '+' in mmf_att:
+        ops = '+'
+    elif '^' in mmf_att:
+        ops = '^'
+    return module_list, ops
+
+
 class Fuse2Stage(nn.Module):
-    def __init__(self, in_ch, shape=None, mmf_att=None, mode='early', **kwargs):
+    def __init__(self, in_ch, shape=None, mmf_att=None, mode='early', proc=None, param=None, **kwargs):
         super().__init__()
         self.mmf_att = mmf_att
-        if '_' in mmf_att or '+' in mmf_att or '^' in mmf_att:
-            module_list = re.split('\_|\+', mmf_att)
+        self.proc = proc
+        module_list, self.ops = parse_att(mmf_att)
 
-            if '_' in mmf_att:
-                self.ops = '_'
-                self.mode = mode
-                if mode == 'late':
-                    self.module0_rgb = Module_Dict[module_list[0]](in_ch, shape)
-                    self.module0_dep = Module_Dict[module_list[0]](in_ch, shape)
-                    self.module1 = RGBDFuse(in_ch=in_ch, mmf_att=module_list[1], shape=shape)
-                elif mode == 'early':
-                    self.module0 = RGBDFuse(in_ch=in_ch, mmf_att=module_list[0], shape=shape)
-                    self.module1 = Module_Dict[module_list[1]](in_ch, shape)
+        if self.ops == '_':
+            self.mode = mode
+            if mode == 'late':
+                self.module0_rgb = Module_Dict[module_list[0]](in_ch, shape)
+                self.module0_dep = Module_Dict[module_list[0]](in_ch, shape)
+                self.proc_module_rgb = get_proc(proc, in_ch)
+                self.proc_module_dep = get_proc(proc, in_ch)
+                self.module1 = RGBDFuse(in_ch=in_ch, mmf_att=module_list[1], shape=shape, **kwargs)
+            elif mode == 'early':
+                self.module0 = RGBDFuse(in_ch=in_ch, mmf_att=module_list[0], shape=shape, **kwargs)
+                self.proc_module = get_proc(proc, in_ch)
+                self.module1 = Module_Dict[module_list[1]](in_ch, shape)
+                self.alpha = Parameter(torch.zeros(1)) if param else None
 
-            elif '+' in mmf_att:
-                self.ops = '+'
-                for i, module_name in enumerate(module_list):
-                    self.add_module('module{}'.format(i), RGBDFuse(in_ch=in_ch, mmf_att=module_name, shape=shape))
-
-            elif '^' in mmf_att:
-                self.ops = '^'
-                for i, module_name in enumerate(module_list):
-                    self.add_module('module{}'.format(i), RGBDFuse(in_ch=in_ch, mmf_att=module_name, shape=shape))
-
-        elif mmf_att in Module_Dict.keys():
-            self.module = RGBDFuse(in_ch=in_ch, mmf_att=mmf_att, shape=shape, **kwargs)
+        elif self.ops in ['+', '^']:
+            for i, module_name in enumerate(module_list):
+                self.add_module('module{}'.format(i), RGBDFuse(in_ch=in_ch, mmf_att=module_name, shape=shape))
 
     def forward(self, x, d):
-        if self.mmf_att is None:
-            out = x+d
-        elif self.mmf_att in Module_Dict:
-            out = self.module(x, d)
-        else:
-            if self.ops == '+':
-                out = self.module0(x, d) + self.module1(x, d)
-            elif self.ops == '^':
-                out0 = self.module0(x, d)
-                out1 = self.module1(x, d)
-                out = torch.max(out0, out1)
-            elif self.ops == '_':
-                if self.mode == 'early':
-                    out0 = self.module0(x, d)
+        if self.ops == '+':
+            out = self.module0(x, d) + self.module1(x, d)
+        elif self.ops == '^':
+            out0 = self.module0(x, d)
+            out1 = self.module1(x, d)
+            out = torch.max(out0, out1)
+        elif self.ops == '_':
+            if self.mode == 'early':
+                out0, _ = self.module0(x, d)
+                if self.proc:
+                    out0 = self.proc_module(out0)
+                if self.alpha:
+                    out = self.module1(out0)*self.alpha + out0
+                else:
                     out = self.module1(out0)
-                elif self.mode == 'late':
-                    out0_rgb, out0_dep = self.module0_rgb(x), self.module0_dep(d)
-                    out = self.module1(out0_rgb, out0_dep)
+            elif self.mode == 'late':
+                out0_rgb, out0_dep = self.module0_rgb(x), self.module0_dep(d)
+                if self.proc:
+                    out0_rgb, out0_dep = self.proc_module_rgb(out0_rgb), self.proc_module_dep(out0_dep)
+                out, _ = self.module1(out0_rgb, out0_dep)
         return out, d
 
 

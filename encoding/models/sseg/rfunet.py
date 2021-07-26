@@ -29,6 +29,8 @@ class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
                  fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
         super(RFUNet, self).__init__()
+        if 'act_fn' not in kwargs:
+            kwargs['act_fn'] = 'sigmoid'
         self.mmf_args = {k:v for k, v in kwargs.items() if not k.startswith('mrf')}
         self.mrf_args = {k.replace('mrf_', ''):v for k, v in kwargs.items() if k.startswith('mrf')}
         print('++++++mmf_args:{}+++++++mrf_args:{}+++++++'.format(self.mmf_args, self.mrf_args))
