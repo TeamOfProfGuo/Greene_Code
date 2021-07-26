@@ -19,5 +19,5 @@ module load cuda/10.2.89
 #module load cudnn/7.5
 
 mkdir -p log
-python train.py --mmf_att 'CA2a' --act_fn 'sigmoid' --mrf_att 'CA6'  --mrf_act_fn 'tanh'  >log/train_ca2a_ca6.log 2>& 1
+python train.py --mmf_att 'CA2a' --act_fn 'sigmoid' --mrf_att 'CA6'  --mrf_act_fn 'tanh'  >log/train_ca2a_ca6_tanh.log 2>& 1
 echo "FINISH"
