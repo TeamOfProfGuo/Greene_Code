@@ -66,7 +66,7 @@ class GAU_Fuse(nn.Module):
         if self.param:
             self.alpha = Parameter(torch.zeros(1))  
 
-    def forward(self, x, d):  
+    def forward(self, x, d):  # x is rgb/深层特征， d为dep/浅层特征
         if self.att_feat == 'rgb':
             rgb_out, dep_out = self.att_module(x, d)
             if self.param:

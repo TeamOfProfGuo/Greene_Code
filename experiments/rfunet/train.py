@@ -30,8 +30,9 @@ GPUS = [0, 1]
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--mmf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
 parser.add_argument('--act_fn', type=str, default=None, help='Attention type to fuse rgb and dep')
-parser.add_argument('--mrf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
-parser.add_argument('--mrf_act_fn', type=str, default=None, help='Attention type to fuse rgb and dep')
+parser.add_argument('--mrf_fuse_type', type=str, default='1stage', help='Attention type of multi-resolution fusion')
+parser.add_argument('--mrf_att', type=str, default=None, help='Attention type of mrf')
+parser.add_argument('--mrf_act_fn', type=str, default=None, help='activation function of mrf')
 
 settings = parser.parse_args()
 print(settings)
@@ -98,7 +99,7 @@ class Trainer():
         self.model = model.to(self.device)
 
         # for writing summary
-        path = "/".join(("{}-{}".format(*i) for i in settings.__dict__.items()))
+        path = "/".join(("{}-{}".format(*i) for i in model_kwargs.items()))
         self.writer = SummaryWriter(os.path.join(SMY_PATH, path))
         # resuming checkpoint
         if args.resume is not None and args.resume != 'None':
@@ -173,7 +174,7 @@ class Trainer():
             if new_pred > self.best_pred:
                 is_best = True
                 self.best_pred = new_pred
-            path = 'runs/' + "/".join(("{}-{}".format(*i) for i in settings.__dict__.items()))
+            path = 'runs/' + "/".join(("{}-{}".format(*i) for i in model_kwargs.items()))
             utils.save_checkpoint({'epoch': epoch + 1,
                                    'state_dict': self.model.state_dict(),
                                    'optimizer': self.optimizer.state_dict(),

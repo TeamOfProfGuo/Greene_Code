@@ -27,7 +27,7 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-                 fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
+                 fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
         super(RFUNet, self).__init__()
         self.mmf_args = {k:v for k, v in kwargs.items() if not k.startswith('mrf')}
         self.mrf_args = {k.replace('mrf_', ''):v for k, v in kwargs.items() if k.startswith('mrf')}
@@ -63,9 +63,9 @@ class RFUNet(nn.Module):
         self.up3 = nn.Sequential(BasicBlock(256, 256), BasicBlock(256, 128, upsample=upsample3))
         self.up2 = nn.Sequential(BasicBlock(128, 128), BasicBlock(128, 64, upsample=True))
 
-        self.level_fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
-        self.level_fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
-        self.level_fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
+        self.level_fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mrf_att, fuse_type=mrf_fuse_type, **self.mrf_args)
+        self.level_fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mrf_att, fuse_type=mrf_fuse_type, **self.mrf_args)
+        self.level_fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mrf_att, fuse_type=mrf_fuse_type, **self.mrf_args)
 
         self.out_conv = nn.Sequential(BasicBlock(64, 128, upsample=True), BasicBlock(128, 128),
                                       nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
@@ -109,8 +109,8 @@ class RFUNet(nn.Module):
 
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-               fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
+               fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
-                   fuse_type=fuse_type, mmf_att=mmf_att, mrf_att=mrf_att, **kwargs)
+                   fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmf_att=mmf_att, mrf_att=mrf_att, **kwargs)
     return model
