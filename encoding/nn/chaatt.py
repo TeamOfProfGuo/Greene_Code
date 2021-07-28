@@ -3,10 +3,11 @@ import torch
 import numpy as np
 import torch.nn as nn
 from functools import reduce
+from torch.nn import functional as F
 from torch.nn import Module, Softmax, Parameter
 from .center import PyramidPooling
 __all__ = ['AttGate1', 'AttGate2', 'AttGate2a', 'AttGate2b', 'AttGate2d', 'AttGate3', 'AttGate3a', 'AttGate3b', 'AttGate4c',
-           'AttGate5c', 'AttGate6', 'AttGate9']
+           'AttGate5c', 'AttGate6', 'AttGate9', 'PSK']
 
 
 # class AttGate2(Module):
@@ -197,6 +198,61 @@ class AttGate2b(nn.Module):
             w_xy = w_xy.view(batch_size, 2, ch)    # [B, 2, c]
             w_xy = self.act(w_xy)                  # [B, 2, c]
             w_x, w_y = w_xy[:, 0].contiguous(), w_xy[:, 1].contiguous()      # [B, c]
+        out = x * w_x.view(batch_size, ch, 1, 1) + y * w_y.view(batch_size, ch, 1, 1)
+        return out
+
+
+class PSK(nn.Module):
+    def __init__(self, in_ch, shape=None, dr=8, r=16, act_fn=None):
+        super().__init__()
+        d = max(int(in_ch / r), 32)
+        self.pp_size = (1, 3, 5)  # pp_size: pyramid layer num
+        self.feats_size = sum([(s ** 2) for s in self.pp_size])  # f: total feats for descriptor
+        self.dr = dr  # dr: descriptor dim (for one channel)
+        self.act_fn = act_fn
+        print('[PDLE]: s = %s, d = %d, m = %d.' % (self.pp_size, self.dr, d))
+
+        self.des = nn.Conv2d(self.feats_size, dr, kernel_size=1)
+        self.fc = nn.Sequential(nn.Linear(in_ch * dr, d, bias=False),
+                                nn.BatchNorm1d(d),
+                                nn.ReLU(inplace=True))
+        # 各个分支
+        self.fc_x = nn.Linear(d, in_ch)
+        self.fc_y = nn.Linear(d, in_ch)
+        if act_fn == 'sigmoid':
+            self.act_x = nn.Sigmoid()
+            self.act_y = nn.Sigmoid()
+        elif act_fn == 'tanh':
+            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
+            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
+        elif act_fn == 'rsigmoid':
+            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
+            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
+        elif act_fn == 'softmax':
+            self.act = nn.Softmax(dim=1)
+
+    def forward(self, x, y):
+        U = x + y
+        batch_size, ch, _, _ = U.size()
+
+        pooling_pyramid = []
+        for s in self.pp_size:
+            pooling_pyramid.append(F.adaptive_avg_pool2d(x, s).view(batch_size, ch, 1, -1))
+        z = torch.cat(tuple(pooling_pyramid), dim=-1)    # [B, c, 1, f]
+        z = z.reshape(batch_size * ch, -1, 1, 1)         # [bc, f, 1, 1]
+        z = self.des(z).view(batch_size, ch * self.dr)   # [bc, dr, 1, 1] => [b, c*dr]
+        z = self.fc(z)  # [B, d]
+
+        z_x = self.fc_x(z)  # [B, c]
+        z_y = self.fc_y(z)  # [B, c]
+        if self.act_fn in ['sigmoid', 'tanh', 'rsigmoid']:
+            w_x = self.act_x(z_x)  # [B, c]
+            w_y = self.act_y(z_y)  # [B, c]
+        elif self.act_fn == 'softmax':
+            w_xy = torch.cat((z_x, z_y), dim=1)  # [B, 2c]
+            w_xy = w_xy.view(batch_size, 2, ch)  # [B, 2, c]
+            w_xy = self.act(w_xy)  # [B, 2, c]
+            w_x, w_y = w_xy[:, 0].contiguous(), w_xy[:, 1].contiguous()  # [B, c]
         out = x * w_x.view(batch_size, ch, 1, 1) + y * w_y.view(batch_size, ch, 1, 1)
         return out
 

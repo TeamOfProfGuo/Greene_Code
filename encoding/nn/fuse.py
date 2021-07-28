@@ -4,13 +4,13 @@ import torch
 import torch.nn as nn
 from torch.nn import Parameter
 import torch.nn.functional as F
-from .chaatt import AttGate1, AttGate2, AttGate2a, AttGate2b, AttGate2d, AttGate3, AttGate3a, AttGate3b, AttGate4c, AttGate5c, AttGate6, AttGate9
+from .chaatt import AttGate1, AttGate2, AttGate2a, AttGate2b, AttGate2d, PSK, AttGate3, AttGate3a, AttGate3b, AttGate4c, AttGate5c, AttGate6, AttGate9
 from .posatt import PosAtt0, PosAtt1, PosAtt2, PosAtt3, PosAtt3a, PosAtt3c, PosAtt4, PosAtt4a, PosAtt5, PosAtt6, PosAtt6a
 from .posatt import PosAtt7, PosAtt7a, PosAtt7b, PosAtt7d, PosAtt9, PosAtt9a, CMPA1, CMPA1a, CMPA2, CMPA2a
 from .att import ContextBlock, FPA
 
 Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA2a':AttGate2a, 'CA2b':AttGate2b, 'CA2d': AttGate2d,
-             'CA3':AttGate3, 'CA3a':AttGate3a, 'CA3b':AttGate3b,
+             'CA3':AttGate3, 'CA3a':AttGate3a, 'CA3b':AttGate3b, 'PSK': PSK,
              'CA4c':AttGate4c, 'CA5c':AttGate5c, 'CA6':AttGate6, 'CA9':AttGate9, 'PA0':PosAtt0, 'PA1': PosAtt1,
              'PA2':PosAtt2, 'PA3':PosAtt3, 'PA3a':PosAtt3a, 'PA3c':PosAtt3c, 'PA4':PosAtt4, 'PA4a':PosAtt4a, 'PA5': PosAtt5,
              'PA6': PosAtt6, 'PA6a': PosAtt6a, 'PA7': PosAtt7, 'PA7a': PosAtt7a, 'PA7b': PosAtt7b, 'PA7d': PosAtt7d,
