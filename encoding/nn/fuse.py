@@ -30,15 +30,21 @@ class Fuse_Block(nn.Module):
 
 
 class RGBDFuse(nn.Module):
-    def __init__(self, in_ch, shape=None, mmf_att=None, **kwargs):
+    def __init__(self, in_ch, shape=None, mmf_att=None, bn=False, bn_dep=False, **kwargs):
         super().__init__()
         self.mmf_att = mmf_att
+        self.bn = bn
+        self.bn_dep = bn_dep
         if mmf_att in ['CA0', 'CA4c', 'CA5c', 'CB', 'PA9', 'PA9a']:
             self.mode ='late'
         elif mmf_att in Module_Dict.keys():
             self.mode = 'early'
         elif mmf_att == None:
             self.mode = None
+
+        if bn:
+            self.bn_x = nn.BatchNorm2d(in_ch)
+            self.bn_d = nn.BatchNorm2d(in_ch)
         #print('fusion model {}'.format(self.mode))
 
         if self.mode == 'late':
@@ -48,13 +54,19 @@ class RGBDFuse(nn.Module):
             self.att_module = Module_Dict[self.mmf_att](in_ch, shape, **kwargs)
 
     def forward(self, x, dep):
+        d = dep
+        if self.bn:
+            x, dep = self.bn_x(x), self.bn_d(dep)
+        if self.bn_dep:
+            d = dep
+
         if self.mode == 'late': 
             out = self.rgb_att(x) + self.dep_att(dep)
         elif self.mode == 'early':  
             out = self.att_module(x, dep)      # 'CA6'这里需要注意顺序，rgb在前面，dep在后面，对dep进行reweight
         elif self.mode == None:
             out = x+dep
-        return out, dep
+        return out, d
 
 
 class GAU_Fuse(nn.Module):
