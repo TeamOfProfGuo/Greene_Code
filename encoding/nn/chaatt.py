@@ -190,7 +190,7 @@ class AttGate2b(nn.Module):
             ppool.append(F.adaptive_avg_pool2d(U, s).view(batch_size, ch, -1))  # [B, c, s*s]
         z = torch.cat(tuple(ppool), dim=-1)            # [B, c, 1+9+25]
         z = z.view(batch_size, -1).contiguous()        # [B, c*35]
-        z = self.fc(s)                                 # [B, d]
+        z = self.fc(z)                                 # [B, d]
 
         z_x = self.fc_x(z)  # [B, c]
         z_y = self.fc_y(z)  # [B, c]
