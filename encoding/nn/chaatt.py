@@ -157,7 +157,7 @@ class AttGate2b(nn.Module):
         """ Attention as in SKNet (selective kernel) """
         super().__init__()
         self.act_fn = act_fn
-        self.pp_size = (1, 3, 5)
+        self.pp_size = (1, 3)
         d = 32 if shape[0] >= 30 else 16
         pp_d = sum(e**2 for e in self.pp_size)
         print('pp_size: {} dimension d {}'.format(self.pp_size, d))
