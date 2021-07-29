@@ -206,7 +206,8 @@ class PSK(nn.Module):
     def __init__(self, in_ch, shape=None, dr=8, r=16, act_fn=None):
         super().__init__()
         d = max(int(in_ch / r), 32)
-        self.pp_size = (1, 3, 5)  # pp_size: pyramid layer num
+        self.pp_size = (1, 3, 5, 7)  # pp_size: pyramid layer num
+        print('pp_size {}'.format(self.pp_size))
         self.feats_size = sum([(s ** 2) for s in self.pp_size])  # f: total feats for descriptor
         self.dr = dr  # dr: descriptor dim (for one channel)
         self.act_fn = act_fn
