@@ -156,12 +156,14 @@ class AttGate2b(nn.Module):
     def __init__(self, in_ch, shape=None, r=16, act_fn=None):
         """ Attention as in SKNet (selective kernel) """
         super().__init__()
-        d = max(int(in_ch / 16), 32)
         self.act_fn = act_fn
-        self.pool1 = nn.AdaptiveAvgPool2d((1, 1))
-        self.pool3 = nn.AdaptiveAvgPool2d((3, 3))
+        self.pp_size = (1, 3, 5)
+        d = 32 if shape[0] >= 30 else 16
+        pp_d = sum(e**2 for e in self.pp_size)
+        print('pp_size: {} dimension d {}'.format(self.pp_size, d))
+
         # to calculate Z
-        self.fc = nn.Sequential(nn.Linear(in_ch*10, d, bias=False),
+        self.fc = nn.Sequential(nn.Linear(in_ch*pp_d, d, bias=False),
                                 nn.BatchNorm1d(d),
                                 nn.ReLU(inplace=True))
         # 各个分支
@@ -183,10 +185,12 @@ class AttGate2b(nn.Module):
         U = x+y
         batch_size, ch, _, _ = U.size()
 
-        s1 = self.pool1(U).view(batch_size, ch, -1)    # [B, c, 1]
-        s2 = self.pool3(U).view(batch_size, ch, -1)    # [B, c, 9]
-        s = torch.cat((s1,s2), dim=2).view(batch_size, -1).contiguous()  # [B, 10*c]
-        z = self.fc(s)      # [B, d]
+        ppool = []
+        for s in self.pp_size:
+            ppool.append(F.adaptive_avg_pool2d(U, s).view(batch_size, ch, -1))  # [B, c, s*s]
+        z = torch.cat(tuple(ppool), dim=-1)            # [B, c, 1+9+25]
+        z = z.view(batch_size, -1).contiguous()        # [B, c*35]
+        z = self.fc(s)                                 # [B, d]
 
         z_x = self.fc_x(z)  # [B, c]
         z_y = self.fc_y(z)  # [B, c]
