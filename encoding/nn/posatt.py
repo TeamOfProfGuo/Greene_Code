@@ -16,19 +16,24 @@ class ChannelPool(nn.Module):
 
 
 class PosAtt0(nn.Module):
-    def __init__(self, ch, r=4):
+    def __init__(self, ch, shape=None, r=4, act_fn='sigmoid', conv=False, fuse='add'):
         super(PosAtt0, self).__init__()
         int_ch = max(ch//r, 32)
+        self.act_fn, self.conv, self.fuse = act_fn, conv, fuse
         self.W_x = nn.Sequential(nn.Conv2d(ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),
                                  nn.BatchNorm2d(int_ch))
         self.W_y = nn.Sequential(nn.Conv2d(ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),
                                  nn.BatchNorm2d(int_ch))
+        self.relu = nn.ReLU(inplace=True)
 
         self.psi = nn.Sequential(nn.Conv2d(int_ch, 1, kernel_size=1, stride=1, padding=0, bias=True),
-                                 nn.BatchNorm2d(1),
-                                 nn.Sigmoid())
+                                 nn.BatchNorm2d(1),)
 
-        self.relu = nn.ReLU(inplace=True)
+        if self.conv:
+            self.x_conv = nn.Sequential(nn.Conv2d(ch, ch, kernel_size=3, padding=1, bias=False),
+                                        nn.BatchNorm2d(ch))
+        if self.fuse == 'cat':
+            self.out_conv = nn.Conv2d(ch * 2, ch, kernel_size=1, stride=1)
 
     def forward(self, y, x):   # 对x(第二个param)进行attention处理
         x1 = self.W_x(x)           # [B, int_c, h, w]
@@ -36,8 +41,21 @@ class PosAtt0(nn.Module):
         psi = self.relu(x1 + y1)   # no bias
         psi = self.psi(psi)        # [B, 1, h, w]
 
-        out = x*psi
-        return out
+        if self.act_fn == 'sigmoid':
+            psi = F.sigmoid(psi)
+        elif self.act_fn == 'rsigmoid':
+            psi = F.sigmoid(F.relu(psi, inplace=True))
+        elif self.act_fn == 'tanh':
+            psi = F.tanh(F.relu(psi, inplace=True))
+
+        if self.conv:
+            x = self.x_conv(x)
+        weighted_x = x*psi
+
+        if self.fuse == 'add':
+            return weighted_x+y
+        elif self.fuse == 'cat':
+            return self.out_conv( torch.cat((weighted_x, y), dim=1) )
 
 
 class PosAtt1(nn.Module):
