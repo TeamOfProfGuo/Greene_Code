@@ -19,5 +19,5 @@ module load cuda/10.2.89
 #module load cudnn/7.5
 
 mkdir -p log
-python train.py --mrf_att 'PA1' --mrf_act_fn 'sigmoid' --mrf_conv 'conv' --mrf_fuse 'add' -- >log/train_pa1_sig_cv_ad.log 2>& 1
+python train.py --mrf_att 'PA1' --mrf_act_fn 'sigmoid' --mrf_conv 'conv' --mrf_fuse 'add' >log/train_pa1_sig_cv_ad.log 2>& 1
 echo "FINISH"
