@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from .center import PyramidPooling
+from .basic import *
 
 __all__ = ['PosAtt0', 'PosAtt1', 'PosAtt2', 'PosAtt3', 'PosAtt3a', 'PosAtt3c', 'PosAtt4', 'PosAtt4a', 'PosAtt5',
            'PosAtt6', 'PosAtt6a', 'PosAtt7', 'PosAtt7a', 'PosAtt7b', 'PosAtt7d', 'PosAtt9', 'PosAtt9a',
@@ -16,7 +17,7 @@ class ChannelPool(nn.Module):
 
 
 class PosAtt0(nn.Module):
-    def __init__(self, ch, shape=None, r=4, act_fn='sigmoid', conv=False, fuse='add'):
+    def __init__(self, ch, shape=None, r=4, act_fn='sigmoid', conv=None, fuse='add'):
         super(PosAtt0, self).__init__()
         int_ch = max(ch//r, 32)
         self.act_fn, self.conv, self.fuse = act_fn, conv, fuse
@@ -29,9 +30,12 @@ class PosAtt0(nn.Module):
         self.psi = nn.Sequential(nn.Conv2d(int_ch, 1, kernel_size=1, stride=1, padding=0, bias=True),
                                  nn.BatchNorm2d(1),)
 
-        if self.conv:
+        if self.conv == 'conv':
             self.x_conv = nn.Sequential(nn.Conv2d(ch, ch, kernel_size=3, padding=1, bias=False),
                                         nn.BatchNorm2d(ch))
+        elif self.conv == 'bblok':
+            self.x_conv = BasicBlock(ch, ch)
+
         if self.fuse == 'cat':
             self.out_conv = nn.Conv2d(ch * 2, ch, kernel_size=1, stride=1)
 
