@@ -39,7 +39,7 @@ class PosAtt0(nn.Module):
         if self.fuse == 'cat':
             self.out_conv = nn.Conv2d(ch * 2, ch, kernel_size=1, stride=1)
 
-    def forward(self, y, x):   # 对x(第二个param)进行attention处理
+    def forward(self, y, x):   # 对x(第二个param)进行attention处理 y深层网络 x浅层网络
         x1 = self.W_x(x)           # [B, int_c, h, w]
         y1 = self.W_y(y)           # [B, int_c, h, w]
         psi = self.relu(x1 + y1)   # no bias
@@ -62,29 +62,65 @@ class PosAtt0(nn.Module):
             return self.out_conv( torch.cat((weighted_x, y), dim=1) )
 
 
+def interweave(x, y):
+    batch_size, ch, height, width = x.size()
+    x = x.view(batch_size, ch, -1)  # [B, c, hw]
+    y = y.view(batch_size, ch, -1)  # [B, c, hw]
+    m = torch.cat((x, y), dim=-1)  # [B, c, 2hw]
+    return m.view(batch_size, 2 * ch, height, -1).contiguous()  # [B, 2c, h, w]
+
+
 class PosAtt1(nn.Module):
-    def __init__(self, ch, r=4):
+    def __init__(self, ch, shape=None, r=4, act_fn='softmax', conv=None, fuse='add'):
         super(PosAtt1, self).__init__()
+        self.act_fn, self.conv, self.fuse = act_fn, conv, fuse
         int_ch = max(ch//r, 32)
         self.W_x = nn.Sequential(nn.Conv2d(ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),
                                  nn.BatchNorm2d(int_ch))
         self.W_y = nn.Sequential(nn.Conv2d(ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),
                                  nn.BatchNorm2d(int_ch))
-
-        self.psi = nn.Sequential(nn.Conv2d(int_ch, 2, kernel_size=1, stride=1, padding=0, bias=True),
-                                 nn.BatchNorm2d(2),
-                                 nn.Softmax(dim=1))
-
         self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, x, y):
+        self.psi = nn.Sequential(nn.Conv2d(int_ch, 2, kernel_size=1, stride=1, padding=0, bias=True),
+                                 nn.BatchNorm2d(2))
+
+        if self.conv == 'conv':
+            self.x_conv = nn.Sequential(nn.Conv2d(ch, ch, kernel_size=3, padding=1, bias=False),
+                                        nn.BatchNorm2d(ch))
+        elif self.conv == 'bbk':
+            self.x_conv = BasicBlock(ch, ch)
+
+        if self.fuse == 'cat':
+            self.out_conv = nn.Conv2d(ch * 2, ch, kernel_size=1, stride=1)
+        elif self.fuse == 'wt':
+            self.out_conv = nn.Conv2d(ch * 2, ch, kernel_size=1, stride=1, groups=ch, bias=False)
+            self.out_conv.weight.data.fill_(0.5)
+
+    def forward(self, y, x):   # y深层网络 x浅层网络
         x1 = self.W_x(x)           # [B, int_c, h, w]
         y1 = self.W_y(y)           # [B, int_c, h, w]
         psi = self.relu(x1 + y1)   # no bias
         psi = self.psi(psi)        # [B, 2, h, w]
 
-        out = x * psi[:, :1].contiguous() + y * psi[:, 1:].contiguous()
-        return out
+        if self.act_fn == 'sigmoid':
+            psi = F.sigmoid(psi)         # [B, 2, h, w]
+        elif self.act_fn == 'softmax':
+            psi = F.softmax(psi, dim=1)  # [B, 2, h, w]
+        elif self.act_fn == 'tanh':
+            psi = F.tanh(F.relu(psi, inplace=True))
+
+        if self.conv:
+            x = self.x_conv(x)
+        wt_x = x * psi[:, :1].contiguous()  # [B, c, h, w]
+        wt_y = y * psi[:, 1:].contiguous()  # [B, c, h, w]
+
+        if self.fuse == 'add':
+            return wt_x + wt_y
+        elif self.fuse == 'cat':
+            return self.out_conv(torch.cat((wt_x, wt_y), dim=1))
+        elif self.fuse == 'wt':
+            return self.out_conv(interweave(wt_x, wt_y))
+
 
 
 class PosAtt2(nn.Module):
