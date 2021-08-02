@@ -210,12 +210,12 @@ class PSK(nn.Module):
     def __init__(self, in_ch, shape=None, dr=8, r=16, act_fn=None):
         super().__init__()
         d = max(int(in_ch / r), 32)
-        self.pp_size = (1, 3, 5, 7)  # pp_size: pyramid layer num
+        self.pp_size = (1, 3, 5)  # pp_size: pyramid layer num
         print('pp_size {}'.format(self.pp_size))
         self.feats_size = sum([(s ** 2) for s in self.pp_size])  # f: total feats for descriptor
         self.dr = dr  # dr: descriptor dim (for one channel)
         self.act_fn = act_fn
-        print('[PDLE]: s = %s, d = %d, m = %d.' % (self.pp_size, self.dr, d))
+        print('pp_size = %s, dr = %d, d = %d.' % (self.pp_size, self.dr, d))
 
         self.des = nn.Conv2d(self.feats_size, dr, kernel_size=1)
         self.fc = nn.Sequential(nn.Linear(in_ch * dr, d, bias=False),
@@ -635,3 +635,4 @@ class AttGate9(nn.Module):
         m = m.view(batch_size, 2*ch, h, -1).contiguous()  # [B, 2c, h, w]
         out = self.conv(m)                                # [B, c, h, w]
         return out
+

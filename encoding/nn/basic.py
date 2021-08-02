@@ -2,8 +2,9 @@
 
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 
-__all__ = ['BasicBlock', 'FuseBlock', 'CenterBlock']
+__all__ = ['BasicBlock', 'FuseBlock', 'CenterBlock', 'FCNHead']
 
 
 class BasicBlock(nn.Module):
@@ -79,4 +80,70 @@ class CenterBlock(nn.Module):
         out = self.rcu(g)
         return out
 
+
+
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
+
+
+class GlobalPooling(nn.Module):
+    def __init__(self, in_channels, out_channels, norm_layer, up_kwargs):
+        super(GlobalPooling, self).__init__()
+        self._up_kwargs = up_kwargs
+        self.gap = nn.Sequential(nn.AdaptiveAvgPool2d(1),
+                                 nn.Conv2d(in_channels, out_channels, 1, bias=False),
+                                 norm_layer(out_channels),
+                                 nn.ReLU(True))
+
+    def forward(self, x):
+        _, _, h, w = x.size()
+        pool = self.gap(x)
+        return F.interpolate(pool, (h, w), **self._up_kwargs)
+
+
+class ConcurrentModule(nn.ModuleList):
+    r"""Feed to a list of modules concurrently. The outputs of the layers are concatenated at channel dimension.
+
+    Args: modules (iterable, optional): an iterable of modules to add
+    """
+    def __init__(self, modules=None):
+        super(ConcurrentModule, self).__init__(modules)
+
+    def forward(self, x):
+        outputs = []
+        for layer in self:
+            outputs.append(layer(x))
+        return torch.cat(outputs, 1)
+
+
+class FCNHead(nn.Module):
+    def __init__(self, in_channels, out_channels, norm_layer=nn.BatchNorm2d, up_kwargs={'mode': 'bilinear', 'align_corners': True}, with_global=False):
+        super(FCNHead, self).__init__()
+        inter_channels = in_channels // 4
+        self._up_kwargs = up_kwargs
+        if with_global:
+            self.conv5 = nn.Sequential(nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
+                                       norm_layer(inter_channels),
+                                       nn.ReLU(),
+                                       ConcurrentModule([
+                                           Identity(),
+                                           GlobalPooling(inter_channels, inter_channels,
+                                                         norm_layer, self._up_kwargs),
+                                       ]),
+                                       nn.Dropout(0.1, False),
+                                       nn.Conv2d(2 * inter_channels, out_channels, 1))
+        else:
+            self.conv5 = nn.Sequential(nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
+                                       norm_layer(inter_channels),
+                                       nn.ReLU(),
+                                       nn.Dropout(0.1, False),
+                                       nn.Conv2d(inter_channels, out_channels, 1))
+
+    def forward(self, x):
+        return self.conv5(x)
 

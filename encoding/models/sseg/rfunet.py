@@ -10,7 +10,7 @@ from ...nn import BasicBlock, AttGate1, AttGate2, AttGate3, AttGate3a, AttGate3b
 from ...nn import PosAtt0, PosAtt1, PosAtt2, PosAtt3, PosAtt3a, PosAtt3c, PosAtt4, PosAtt4a, PosAtt5, PosAtt6, PosAtt6a
 from ...nn import PosAtt7, PosAtt7a, PosAtt7b, PosAtt7d, PosAtt9, PosAtt9a, CMPA1, CMPA1a, CMPA2, CMPA2a
 from ...nn import ContextBlock, FPA
-from ...nn import Fuse_Block, LevelFuse
+from ...nn import Fuse_Block, FCNHead
 from ..backbone import get_resnet18
 
 # RFUNet: Res Fuse U-Net
@@ -26,11 +26,12 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 
 class RFUNet(nn.Module):
-    def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
+    def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
                  fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, refine=None, **kwargs):
         super(RFUNet, self).__init__()
         # if 'act_fn' not in kwargs:
         #     kwargs['act_fn'] = 'sigmoid'
+        self.aux = [int(e) for e in list(aux)] if aux is not None else None
         self.refine = refine
         self.mmf_args = {k:v for k, v in kwargs.items() if not k.startswith('mrf')}
         self.mrf_args = {k.replace('mrf_', ''):v for k, v in kwargs.items() if k.startswith('mrf')}
@@ -78,6 +79,12 @@ class RFUNet(nn.Module):
         self.out_conv = nn.Sequential(BasicBlock(64, 128, upsample=True), BasicBlock(128, 128),
                                       nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
 
+        ch_list = [64, 64, 128, 256, 512]
+        if self.aux is not None:
+            for i in self.aux:
+                self.add_module('auxlayer'+str(i), FCNHead(ch_list[i], n_classes))
+
+
     def forward(self, x, d):
         _, _, h, w = x.size()
         d0 = self.d_layer0(d)  # [B, 64, h/2, w/2]
@@ -117,8 +124,14 @@ class RFUNet(nn.Module):
         y1, _ = self.level_fuse1(y2, l1)  # [B, 64, h/4, w/4]
 
         out = self.out_conv(y1)
-        out = F.interpolate(out, (h, w), mode='bilinear', align_corners=True)
-        return out
+        outputs = [F.interpolate(out, (h, w), mode='bilinear', align_corners=True)]
+
+        if self.aux is not None:
+            yd = {3:y3, 2:y2, 1:y1}
+            for i in self.aux:
+                aux_out = self.__getattr__("auxlayer"+str(i)) (yd[i])
+            outputs.append(aux_out)
+        return outputs
 
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
