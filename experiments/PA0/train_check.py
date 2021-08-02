@@ -36,9 +36,10 @@ GPUS = [0,1]
 # =====================  setup  ======================
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
+parser.add_argument('--refine', type=str, default='bbk', help='Attention type to fuse rgb and dep')
 parser.add_argument('--mrf_att', type=str, default='PA0', help='Attention type to fuse rgb and dep')
 parser.add_argument('--mrf_act_fn', type=str, default='sigmoid', help='Attention type to fuse rgb and dep')
-parser.add_argument('--mrf_conv', action='store_true', default= False, help='Attention type to fuse rgb and dep')
+parser.add_argument('--mrf_conv', type=str, default='conv', help='Attention type to fuse rgb and dep')
 parser.add_argument('--mrf_fuse', type=str, default='cat', help='Attention type to fuse rgb and dep')
 settings = parser.parse_args([])
 print(settings)

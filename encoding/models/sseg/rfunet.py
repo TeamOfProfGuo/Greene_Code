@@ -27,10 +27,11 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-                 fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
+                 fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, refine=None, **kwargs):
         super(RFUNet, self).__init__()
         # if 'act_fn' not in kwargs:
         #     kwargs['act_fn'] = 'sigmoid'
+        self.refine = refine
         self.mmf_args = {k:v for k, v in kwargs.items() if not k.startswith('mrf')}
         self.mrf_args = {k.replace('mrf_', ''):v for k, v in kwargs.items() if k.startswith('mrf')}
         print('++++++mmf_args:{}+++++++mrf_args:{}+++++++'.format(self.mmf_args, self.mrf_args))
@@ -69,6 +70,11 @@ class RFUNet(nn.Module):
         self.level_fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mrf_att, fuse_type=mrf_fuse_type, **self.mrf_args)
         self.level_fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mrf_att, fuse_type=mrf_fuse_type, **self.mrf_args)
 
+        if self.refine == 'bbk':
+            self.refine3 = BasicBlock(256, 256)
+            self.refine2 = BasicBlock(128, 128)
+            self.refine1 = BasicBlock(64, 64)
+
         self.out_conv = nn.Sequential(BasicBlock(64, 128, upsample=True), BasicBlock(128, 128),
                                       nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
 
@@ -96,6 +102,11 @@ class RFUNet(nn.Module):
         l4 = self.layer4(l3)  # [B, 512, h/32, w/32]
         l4, _ = self.fuse4(l4, d4)  # [B, 512, h/32, w/32]
 
+        # ======== decoder ========
+        if self.refine:
+            l3 = self.refine3(l3)
+            l2 = self.refine2(l2)
+            l1 = self.refine1(l1)
         y4 = self.up4(l4)  # [B, 256, h/16, w/16]
         y3, _ = self.level_fuse3(y4, l3)
 

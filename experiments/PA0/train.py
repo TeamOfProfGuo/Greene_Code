@@ -28,6 +28,7 @@ GPUS = [0, 1]
 
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
+parser.add_argument('--refine', type=str, default=None, help='Attention type to fuse rgb and dep')
 parser.add_argument('--mrf_att', type=str, default=None, help='Attention type to fuse rgb and dep')
 parser.add_argument('--mrf_act_fn', type=str, default=None, help='Attention type to fuse rgb and dep')
 parser.add_argument('--mrf_conv', type=str, default=None, help='Attention type to fuse rgb and dep')
