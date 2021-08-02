@@ -136,7 +136,7 @@ print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
 # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
 
-loss = criterion(outputs, target)
+loss = criterion(*outputs, target)
 loss.backward()
 optimizer.step()
 

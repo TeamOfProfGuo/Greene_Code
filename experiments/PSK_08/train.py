@@ -130,7 +130,7 @@ class Trainer():
             loss.backward()
             self.optimizer.step()
 
-            correct, labeled = utils.batch_pix_accuracy(outputs.data, target)
+            correct, labeled = utils.batch_pix_accuracy(outputs[0].data, target)
             inter, union = utils.batch_intersection_union(outputs.data, target, self.nclass)
             total_correct += correct
             total_label += labeled
@@ -181,8 +181,8 @@ class Trainer():
         # Fast test during the training
         def eval_batch(model, image, dep, target):
             # model, image, target already moved to gpus
-            pred = model(image, dep)
-            loss = self.criterion(*pred, target)
+            pred = model(image, dep)[0]
+            loss = self.criterion(pred, target)
             correct, labeled = utils.batch_pix_accuracy(pred.data, target)
             inter, union = utils.batch_intersection_union(pred.data, target, self.nclass)
             return correct, labeled, inter, union, loss
