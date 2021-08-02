@@ -131,7 +131,7 @@ class Trainer():
             self.optimizer.step()
 
             correct, labeled = utils.batch_pix_accuracy(outputs[0].data, target)
-            inter, union = utils.batch_intersection_union(outputs.data, target, self.nclass)
+            inter, union = utils.batch_intersection_union(outputs[0].data, target, self.nclass)
             total_correct += correct
             total_label += labeled
             total_inter += inter
