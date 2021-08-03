@@ -619,7 +619,6 @@ class AttGate6(nn.Module):
             return weighted_x+y
 
 
-
 class AttGate9(nn.Module):
     # 简单的线性变换
     def __init__(self, in_ch):
@@ -636,3 +635,119 @@ class AttGate9(nn.Module):
         out = self.conv(m)                                # [B, c, h, w]
         return out
 
+
+class GCGF_Block(nn.Module):
+    def __init__(self, in_feats, pre_bn=False, merge='gcgf'):
+        super().__init__()
+        merge_dict = {
+            'gcgf': AttGate9(in_feats),
+            'add': Add_Merge(in_feats),
+            'cc3': CC3_Merge(in_feats),
+            'la': LA_Merge(in_feats)
+        }
+        if pre_bn:
+            self.pre_bn1 = nn.BatchNorm2d(in_feats)
+            self.pre_bn2 = nn.BatchNorm2d(in_feats)
+        self.pre_bn = pre_bn
+        self.merge_mode = merge
+        self.merge = merge_dict[merge]
+
+    def forward(self, x, y):
+        b, c, h, w = x.size()
+        if self.pre_bn:
+            x = self.pre_bn1(x)
+            y = self.pre_bn2(y)
+        return self.merge(x, y)
+
+
+s = 'pp_layer=4|descriptor=8|mid_feats=16'
+def parse_setting(s):
+    def parse_kv(e):
+        k, v = e.split('=')
+        if v.isdigit():
+            v = int(v)
+        elif v in ['True', 'False']:
+            v = bool(v)
+        return k, v
+
+    if s=='' or s is None:
+        return {}
+    s_list = s.split('|')
+    s_dict = dict([ tuple(parse_kv(e)) for e in s_list ])
+    return s_dict
+
+
+class GCGF_Module(nn.Module):
+    def __init__(self, in_ch, shape=None, pre_att='idt', fuse_setting=None, att_setting=None):
+        super().__init__()
+        module_dict = {
+            'se': AttGate1,
+            'pdl': PDL_Block
+        }
+        self.pre_att = pre_att
+        self.pre1 = module_dict.get(pre_att)(in_ch, shape=shape, **att_setting)
+        self.pre2 = module_dict.get(pre_att)(in_ch, shape=shape, **att_setting)
+        self.gcgf = GCGF_Block(in_ch, **fuse_setting)
+
+    def forward(self, x, y):
+        if self.att_module != 'idt':
+            x = self.pre1(x)
+            y = self.pre2(y)
+        return self.gcgf(x, y)
+
+
+class PDL_Block(nn.Module):
+    def __init__(self, in_feats, shape=None, pp_layer=4, descriptor=8, mid_feats=16):
+        super().__init__()
+        self.layer_size = pp_layer  # l: pyramid layer num
+        self.feats_size = (4 ** pp_layer - 1) // 3  # f: feats for descritor
+        self.descriptor = descriptor  # d: descriptor num (for one channel)
+
+        self.des = nn.Conv2d(self.feats_size, descriptor, kernel_size=1)
+        self.mlp = nn.Sequential(
+            nn.Linear(descriptor * in_feats, mid_feats, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(mid_feats, in_feats),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        l, f, d = self.layer_size, self.feats_size, self.descriptor
+        pooling_pyramid = []
+        for i in range(l):
+            pooling_pyramid.append(F.adaptive_avg_pool2d(x, 2 ** i).view(b, c, 1, -1))
+        y = torch.cat(tuple(pooling_pyramid), dim=-1)  # [b,  c, 1, f]
+        y = y.reshape(b * c, f, 1, 1)  # [bc, f, 1, 1]
+        y = self.des(y).view(b, c * d)  # [bc, d, 1, 1] => [b, cd, 1, 1]
+        w = self.mlp(y).view(b, c, 1, 1)  # [b,  c, 1, 1] => [b, c, 1, 1]
+        return w * x
+
+
+class Add_Merge(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, x, y):
+        return x + y
+
+
+class LA_Merge(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.lamb = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x, y):
+        return x + self.lamb * y
+
+
+class CC3_Merge(nn.Module):
+    def __init__(self, in_feats, *args, **kwargs):
+        super().__init__()
+        self.cc_block = nn.Sequential(
+            nn.Conv2d(2 * in_feats, in_feats, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x, y):
+        return self.cc_block(torch.cat((x, y), dim=1))

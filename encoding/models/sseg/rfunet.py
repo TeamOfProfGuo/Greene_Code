@@ -27,15 +27,18 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, refine=None, **kwargs):
+                 fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, **kwargs):
         super(RFUNet, self).__init__()
+        """ axu: '321', '32', '21', '3', '2', '1' """
         # if 'act_fn' not in kwargs:
         #     kwargs['act_fn'] = 'sigmoid'
         self.aux = [int(e) for e in list(aux)] if aux is not None else None
         self.refine = refine
-        self.mmf_args = {k:v for k, v in kwargs.items() if not k.startswith('mrf')}
-        self.mrf_args = {k.replace('mrf_', ''):v for k, v in kwargs.items() if k.startswith('mrf')}
-        print('++++++mmf_args:{}+++++++mrf_args:{}+++++++'.format(self.mmf_args, self.mrf_args))
+        self.mmf_args = parse_setting(mmfs)
+        self.mrf_args = parse_setting(mrfs)
+        mmf_att = self.mmf_args.pop('mmf')
+        mrf_att = self.mrf_args.pop('mrf')
+        print('++++++mmf:{}, mmf_args:{}+++++++mrf:{}, mrf_args:{}+++++++'.format(mmf_att, self.mmf_args, mrf_att, self.mrf_args))
 
         self.base = get_resnet18(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
         self.dep_base = copy.deepcopy(self.base)
@@ -84,7 +87,6 @@ class RFUNet(nn.Module):
             for i in self.aux:
                 self.add_module('auxlayer'+str(i), FCNHead(ch_list[i], n_classes))
 
-
     def forward(self, x, d):
         _, _, h, w = x.size()
         d0 = self.d_layer0(d)  # [B, 64, h/2, w/2]
@@ -117,11 +119,11 @@ class RFUNet(nn.Module):
         y4 = self.up4(l4)  # [B, 256, h/16, w/16]
         y3, _ = self.level_fuse3(y4, l3)
 
-        y3 = self.up3(y3)  # [B, 128, h/8, w/8]
-        y2, _ = self.level_fuse2(y3, l2)  # [B, 128, h/8, w/8]
+        y3u = self.up3(y3)  # [B, 128, h/8, w/8]
+        y2, _ = self.level_fuse2(y3u, l2)  # [B, 128, h/8, w/8]
 
-        y2 = self.up2(y2)  # [B, 64, h/4, w/4]
-        y1, _ = self.level_fuse1(y2, l1)  # [B, 64, h/4, w/4]
+        y2u = self.up2(y2)  # [B, 64, h/4, w/4]
+        y1, _ = self.level_fuse1(y2u, l1)  # [B, 64, h/4, w/4]
 
         out = self.out_conv(y1)
         outputs = [F.interpolate(out, (h, w), mode='bilinear', align_corners=True)]
@@ -130,13 +132,30 @@ class RFUNet(nn.Module):
             yd = {3:y3, 2:y2, 1:y1}
             for i in self.aux:
                 aux_out = self.__getattr__("auxlayer"+str(i)) (yd[i])
-            outputs.append(aux_out)
+                aux_out = F.interpolate(aux_out, (h, w), mode='bilinear', align_corners=True)
+                outputs.append(aux_out)
         return outputs
 
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-               fuse_type='1stage', mrf_fuse_type='1stage', mmf_att=None, mrf_att=None, **kwargs):
+               fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
-                   fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmf_att=mmf_att, mrf_att=mrf_att, **kwargs)
+                   fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmfs=mmfs, mrfs=mrfs, **kwargs)
     return model
+
+
+def parse_setting(s):
+    def parse_kv(e):
+        k, v = e.split('=')
+        if v.isdigit():
+            v = int(v)
+        elif v in ['True', 'False']:
+            v = bool(v)
+        return k, v
+
+    if s=='' or s is None:
+        return {}
+    s_list = s.split('|')
+    s_dict = dict([ tuple(parse_kv(e)) for e in s_list ])
+    return s_dict

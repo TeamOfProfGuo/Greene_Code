@@ -53,7 +53,7 @@ class NLLMultiLabelSmooth(nn.Module):
 class SegmentationLosses(nn.CrossEntropyLoss):
     """2D Cross Entropy Loss with Auxilary Loss"""
     def __init__(self, se_loss=False, se_weight=0.2, nclass=-1,
-                 aux=False, aux_weight=0.4, weight=None,
+                 aux=None, aux_weight=0.4, weight=None,
                  ignore_index=-1):
         super(SegmentationLosses, self).__init__(weight, None, ignore_index)
         self.se_loss = se_loss
@@ -67,10 +67,13 @@ class SegmentationLosses(nn.CrossEntropyLoss):
         if not self.se_loss and not self.aux:
             return super(SegmentationLosses, self).forward(*inputs)
         elif not self.se_loss:
-            pred1, pred2, target = tuple(inputs)
-            loss1 = super(SegmentationLosses, self).forward(pred1, target)
-            loss2 = super(SegmentationLosses, self).forward(pred2, target)
-            return loss1 + self.aux_weight * loss2
+            target = inputs[-1]
+            loss = super(SegmentationLosses, self).forward(inputs[0], target)
+            loss0 = loss
+            for i in range(1, len(self.aux)+1):
+                loss += super(SegmentationLosses, self).forward(inputs[i], target)*self.aux_weight
+            return loss
+
         elif not self.aux:
             pred, se_pred, target = tuple(inputs)
             se_target = self._get_batch_label_vector(target, nclass=self.nclass).type_as(pred)
