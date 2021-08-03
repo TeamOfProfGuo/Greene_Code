@@ -35,7 +35,7 @@ parser.add_argument('--aux', type=str, default=None, help='mrf fuse settings')
 settings = parser.parse_args()
 print(settings)
 model_kwargs = settings.__dict__
-model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
+#model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 
 
 class Trainer():
