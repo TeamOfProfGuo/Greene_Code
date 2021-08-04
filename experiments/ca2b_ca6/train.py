@@ -182,8 +182,9 @@ class Trainer():
         # Fast test during the training
         def eval_batch(model, image, dep, target):
             # model, image, target already moved to gpus
-            pred = model(image, dep)[0]
-            loss = self.criterion(pred, target)
+            pred = model(image, dep)
+            loss = self.criterion(*pred, target)
+            pred = pred[0]
             correct, labeled = utils.batch_pix_accuracy(pred.data, target)
             inter, union = utils.batch_intersection_union(pred.data, target, self.nclass)
             return correct, labeled, inter, union, loss

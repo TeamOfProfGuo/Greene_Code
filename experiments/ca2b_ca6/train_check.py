@@ -39,7 +39,7 @@ parser = argparse.ArgumentParser(description='model specification')
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--mmfs', type=str, default='mmf=CA2b|act_fn=sigmoid', help='rgbd fuse settings')
 parser.add_argument('--mrfs', type=str, default='mrf=CA6|act_fn=tanh', help='mrf fuse settings')
-parser.add_argument('--aux', type=str, default='32', help='mrf fuse settings')
+parser.add_argument('--aux', type=str, default='21', help='mrf fuse settings')
 settings = parser.parse_args([])
 print(settings)
 
@@ -143,3 +143,15 @@ loss.backward()
 optimizer.step()
 
 train_loss += loss.item()
+
+model.eval()
+total_inter, total_union, total_correct, total_label, total_loss = 0, 0, 0, 0, 0
+for i, (image, dep, target) in enumerate(valloader):
+    image, dep, target = image.to(device), dep.to(device), target.to(device)
+    break
+
+pred = model(image, dep)
+loss = criterion(*pred, target)
+pred = pred[0]
+correct, labeled = utils.batch_pix_accuracy(pred.data, target)
+inter, union = utils.batch_intersection_union(pred.data, target, nclass)
