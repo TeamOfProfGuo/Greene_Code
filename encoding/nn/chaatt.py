@@ -638,33 +638,33 @@ class AttGate9(nn.Module):
 
 
 class GCGF_Block(nn.Module):
-    def __init__(self, in_feats, pre_bn=False, merge='gcgf'):
+    def __init__(self, in_feats, preBn=False, merge='gc'):
         super().__init__()
         merge_dict = {
-            'gcgf': AttGate9(in_feats),
+            'gc': AttGate9(in_feats),
             'add': Add_Merge(in_feats),
             'cc3': CC3_Merge(in_feats),
             'la': LA_Merge(in_feats)
         }
-        if pre_bn:
+        if preBn:
             self.pre_bn1 = nn.BatchNorm2d(in_feats)
             self.pre_bn2 = nn.BatchNorm2d(in_feats)
-        self.pre_bn = pre_bn
+        self.preBn = preBn
         self.merge_mode = merge
         self.merge = merge_dict[merge]
 
     def forward(self, x, y):
         b, c, h, w = x.size()
-        if self.pre_bn:
+        if self.preBn:
             x = self.pre_bn1(x)
             y = self.pre_bn2(y)
         return self.merge(x, y)
 
 
-s = 'pp_layer=4|descriptor=8|mid_feats=16'
+s = 'pp_layer-4&descriptor-8&midf-16'
 def parse_setting(s):
     def parse_kv(e):
-        k, v = e.split('=')
+        k, v = e.split('-')
         if v.isdigit():
             v = int(v)
         elif v in ['True', 'False']:
@@ -673,32 +673,35 @@ def parse_setting(s):
 
     if s=='' or s is None:
         return {}
-    s_list = s.split('|')
+    s_list = s.split('&')
     s_dict = dict([ tuple(parse_kv(e)) for e in s_list ])
     return s_dict
 
 
 class GCGF_Module(nn.Module):
-    def __init__(self, in_ch, shape=None, pre_att='idt', fuse_setting=None, att_setting=None):
+    def __init__(self, in_ch, shape=None, att='idt', gcfuse=None, gcatt=None):
         super().__init__()
         module_dict = {
             'se': AttGate1,
             'pdl': PDL_Block
         }
-        self.pre_att = pre_att
-        self.pre1 = module_dict.get(pre_att)(in_ch, shape=shape, **att_setting)
-        self.pre2 = module_dict.get(pre_att)(in_ch, shape=shape, **att_setting)
-        self.gcgf = GCGF_Block(in_ch, **fuse_setting)
+        gcfuse = parse_setting(gcfuse)
+        gcatt = parse_setting(gcatt)
+        self.pre_att = att
+        if self.pre_att is not 'idt':
+            self.pre1 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gcatt)
+            self.pre2 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gcatt)
+        self.gcgf = GCGF_Block(in_ch, **gcfuse)
 
     def forward(self, x, y):
-        if self.att_module != 'idt':
+        if self.pre_att != 'idt':
             x = self.pre1(x)
             y = self.pre2(y)
         return self.gcgf(x, y)
 
 
 class PDL_Block(nn.Module):
-    def __init__(self, in_feats, shape=None, pp_layer=4, descriptor=8, mid_feats=16):
+    def __init__(self, in_feats, shape=None, pp_layer=4, descriptor=8, mfeats=16):
         super().__init__()
         self.layer_size = pp_layer  # l: pyramid layer num
         self.feats_size = (4 ** pp_layer - 1) // 3  # f: feats for descritor
@@ -706,9 +709,9 @@ class PDL_Block(nn.Module):
 
         self.des = nn.Conv2d(self.feats_size, descriptor, kernel_size=1)
         self.mlp = nn.Sequential(
-            nn.Linear(descriptor * in_feats, mid_feats, bias=False),
+            nn.Linear(descriptor * in_feats, mfeats, bias=False),
             nn.ReLU(inplace=True),
-            nn.Linear(mid_feats, in_feats),
+            nn.Linear(mfeats, in_feats),
             nn.Sigmoid()
         )
 
