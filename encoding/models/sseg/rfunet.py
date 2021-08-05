@@ -27,12 +27,13 @@ Module_Dict={'CA0':AttGate1, 'CA1':AttGate1, 'CA2':AttGate2, 'CA3':AttGate3, 'CA
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, **kwargs):
+                 fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl=None, **kwargs):
         super(RFUNet, self).__init__()
         """ axu: '321', '32', '21', '3', '2', '1' """
         # if 'act_fn' not in kwargs:
         #     kwargs['act_fn'] = 'sigmoid'
         self.aux = [int(e) for e in list(aux)] if aux is not None else None
+        self.auxl = auxl
         self.refine = refine
         self.mmf_args = parse_setting(mmfs)
         self.mrf_args = parse_setting(mrfs)
@@ -85,7 +86,8 @@ class RFUNet(nn.Module):
         ch_list = [64, 64, 128, 256, 512]
         if self.aux is not None:
             for i in self.aux:
-                self.add_module('auxlayer'+str(i), FCNHead(ch_list[i], n_classes))
+                j = i-1 if self.auxl == 'u' else i
+                self.add_module('auxlayer'+str(i), FCNHead(ch_list[j], n_classes))
 
     def forward(self, x, d):
         _, _, h, w = x.size()
@@ -116,8 +118,8 @@ class RFUNet(nn.Module):
             l3 = self.refine3(l3)
             l2 = self.refine2(l2)
             l1 = self.refine1(l1)
-        y4 = self.up4(l4)  # [B, 256, h/16, w/16]
-        y3, _ = self.level_fuse3(y4, l3)
+        y4u = self.up4(l4)  # [B, 256, h/16, w/16]
+        y3, _ = self.level_fuse3(y4u, l3)
 
         y3u = self.up3(y3)  # [B, 128, h/8, w/8]
         y2, _ = self.level_fuse2(y3u, l2)  # [B, 128, h/8, w/8]
@@ -129,7 +131,7 @@ class RFUNet(nn.Module):
         outputs = [F.interpolate(out, (h, w), mode='bilinear', align_corners=True)]
 
         if self.aux is not None:
-            yd = {3:y3, 2:y2, 1:y1}
+            yd = {3:y3, 2:y2, 1:y1} if self.auxl == None else {4:y4u, 3:y3u, 2:y2u, 1:y1}
             for i in self.aux:
                 aux_out = self.__getattr__("auxlayer"+str(i)) (yd[i])
                 aux_out = F.interpolate(aux_out, (h, w), mode='bilinear', align_corners=True)
@@ -138,10 +140,10 @@ class RFUNet(nn.Module):
 
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-               fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, **kwargs):
+               fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, auxl=None, **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
-                   fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmfs=mmfs, mrfs=mrfs, **kwargs)
+                   fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmfs=mmfs, mrfs=mrfs, auxl=auxl, **kwargs)
     return model
 
 
