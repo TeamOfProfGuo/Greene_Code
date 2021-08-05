@@ -36,8 +36,8 @@ class RFUNet(nn.Module):
         self.refine = refine
         self.mmf_args = parse_setting(mmfs)
         self.mrf_args = parse_setting(mrfs)
-        mmf_att = self.mmf_args.pop('mmf')
-        mrf_att = self.mrf_args.pop('mrf')
+        mmf_att = self.mmf_args.pop('mmf', None)
+        mrf_att = self.mrf_args.pop('mrf', None)
         print('++++++mmf:{}, mmf_args:{}+++++++mrf:{}, mrf_args:{}+++++++'.format(mmf_att, self.mmf_args, mrf_att, self.mrf_args))
 
         self.base = get_resnet18(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
