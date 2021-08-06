@@ -21,3 +21,4 @@ from .posatt import *
 from .att import *
 from .basic import *
 from .fuse import *
+from .decoder import *
