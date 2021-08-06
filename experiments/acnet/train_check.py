@@ -40,6 +40,7 @@ parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--mmfs', type=str, default='mmf=GF|att=pdl|gcfuse=merge-gc', help='rgbd fuse settings')
 parser.add_argument('--mrfs', type=str, default=None, help='mrf fuse settings')
 parser.add_argument('--aux', type=str, default=None, help='mrf fuse settings')
+parser.add_argument('--param', type=str, default='1', help='mrf fuse settings')
 settings = parser.parse_args([])
 print(settings)
 
