@@ -38,6 +38,13 @@ print(settings)
 model_kwargs = settings.__dict__
 #model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 
+def get_params(module_list):
+    ids = []
+    for m in module_list:
+        m_ids = list(map(id, m.parameters()))
+        ids += (m_ids)
+    return ids
+
 
 class Trainer():
     def __init__(self, args):
@@ -235,11 +242,3 @@ if __name__ == "__main__":
     print('Starting Epoch:', trainer.args.start_epoch)
     print('Total Epoches:', trainer.args.epochs)
     trainer.train_n_evaluate()
-
-
-def get_params(module_list):
-    ids = []
-    for m in module_list:
-        m_ids = list(map(id, m.parameters()))
-        ids += (m_ids)
-    return ids
