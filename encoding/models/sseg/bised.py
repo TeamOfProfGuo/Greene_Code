@@ -145,13 +145,13 @@ class SpatialPath(nn.Module):
     def forward(self, x, d):
         x1 = self.conv1(x)
         d1 = self.d_conv1(d)
-        x1 += d1
+        x1 = x1 + d1
         x2 = self.conv2(x1)
         d2 = self.d_conv2(d1)
-        x2 += d2
+        x2 = x2 + d2
         x3 = self.conv3(x2)
         d3 = self.d_conv3(d2)
-        x3 += d3
+        x3 = x3 + d3
 
         out = self.conv_out(x3)
         return out
