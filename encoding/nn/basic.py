@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-__all__ = ['BasicBlock', 'FuseBlock', 'CenterBlock', 'FCNHead']
+__all__ = ['BasicBlock', 'FuseBlock', 'ConvBNReLU', 'CenterBlock', 'FCNHead']
 
 
 class BasicBlock(nn.Module):
@@ -42,6 +42,47 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
+
+
+
+class ConvBNReLU(nn.Module):
+
+    def __init__(self, in_chan, out_chan, ks=3, stride=1, padding=1, *args, **kwargs):
+        super(ConvBNReLU, self).__init__()
+        self.conv = nn.Conv2d(in_chan, out_chan, kernel_size = ks, stride = stride, padding = padding, bias = False)
+        self.bn = nn.BatchNorm2d(out_chan)
+        self.relu = nn.ReLU(inplace=True)
+        self.init_weight()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+    def init_weight(self):
+        for ly in self.children():
+            if isinstance(ly, nn.Conv2d):
+                nn.init.kaiming_normal_(ly.weight, a=1)
+                if not ly.bias is None: nn.init.constant_(ly.bias, 0)
+
+
+class UpSample(nn.Module):
+
+    def __init__(self, n_chan, factor=2):
+        super(UpSample, self).__init__()
+        out_chan = n_chan * factor * factor
+        self.proj = nn.Conv2d(n_chan, out_chan, 1, 1, 0)
+        self.up = nn.PixelShuffle(factor)
+        self.init_weight()
+
+    def forward(self, x):
+        feat = self.proj(x)
+        feat = self.up(feat)
+        return feat
+
+    def init_weight(self):
+        nn.init.xavier_normal_(self.proj.weight, gain=1.)
 
 
 class FuseBlock(nn.Module):
