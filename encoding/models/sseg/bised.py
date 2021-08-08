@@ -149,7 +149,7 @@ class SpatialPath(nn.Module):
         x2 = self.conv2(x1)
         d2 = self.d_conv2(d1)
         x2 += d2
-        x3 = self.conv3(x)
+        x3 = self.conv3(x2)
         d3 = self.d_conv3(d2)
         x3 += d3
 
