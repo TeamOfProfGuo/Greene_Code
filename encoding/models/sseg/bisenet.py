@@ -243,7 +243,7 @@ class BiSeNetV1(nn.Module):
 
     def __init__(self, n_classes, aux=None, root='./encoding/models/pretrain', *args, **kwargs):
         super(BiSeNetV1, self).__init__()
-        self.cp = ContextPath()
+        self.cp = ContextPath(root=root)
         self.sp = SpatialPath()
         self.ffm = FeatureFusionModule(256, 256)
         self.conv_out = BiSeNetOutput(256, 256, n_classes, up_factor=8)
