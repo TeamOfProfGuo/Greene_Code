@@ -4,6 +4,7 @@ from .refined import *
 from .rfunet import *
 from .rfdnet import *
 from .acnet import *
+from .bisenet import *
 
 
 def get_segmentation_model(name, **kwargs):
@@ -14,6 +15,6 @@ def get_segmentation_model(name, **kwargs):
         'rfunet': get_rfunet,
         'rfdnet': get_rfdnet,
         'acnet': get_acnet,
-
+        'bise': get_bise,
     }
     return models[name.lower()](**kwargs)
