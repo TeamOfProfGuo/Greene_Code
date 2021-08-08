@@ -60,7 +60,7 @@ class SpatialPath_drn(nn.Module):
         if self.with_conv=='cv1':
             self.conv_out = ConvBNReLU(128, 128, ks=1, stride=1, padding=0)
         elif self.with_conv=='cv3':
-            self.conv_out = ConvBNReLU(128, 128, ks=3, stride=1, padding=0)
+            self.conv_out = ConvBNReLU(128, 128, ks=3, stride=1, padding=1)
 
     def forward(self, x, d):
         x0 = self.relu(self.bn1(self.conv1(x)))
