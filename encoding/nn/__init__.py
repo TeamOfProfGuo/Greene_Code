@@ -22,3 +22,4 @@ from .att import *
 from .basic import *
 from .fuse import *
 from .decoder import *
+from .bise_blk import *

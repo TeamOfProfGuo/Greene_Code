@@ -38,6 +38,8 @@ GPUS = [0,1]
 
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--aux', type=str, default=None, help='mrf fuse settings')
+parser.add_argument('--sp', type=str, default='drn', help='mrf fuse settings')
+parser.add_argument('--sp_conv', type=str, default='cv1', help='mrf fuse settings')
 settings = parser.parse_args([])
 print(settings)
 

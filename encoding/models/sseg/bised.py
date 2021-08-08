@@ -7,7 +7,7 @@ import torch.nn as nn
 from ..backbone import get_resnet18
 import torch.nn.functional as F
 from torch.nn import BatchNorm2d
-from ...nn import ConvBNReLU
+from ...nn import ConvBNReLU, SpatialPath_drn
 
 __all__ = ['BiSeDNet', 'get_bised']
 
@@ -214,10 +214,13 @@ class FeatureFusionModule(nn.Module):
 
 class BiSeDNet(nn.Module):
 
-    def __init__(self, n_classes, aux=None, root='./encoding/models/pretrain', *args, **kwargs):
+    def __init__(self, n_classes, aux=None, root='./encoding/models/pretrain', sp=None, **kwargs):
         super(BiSeDNet, self).__init__()
         self.cp = ContextPath(root=root)
-        self.sp = SpatialPath()
+        if sp is None or sp=='base':
+            self.sp = SpatialPath()
+        elif sp == 'drn':
+            self.sp = SpatialPath_drn(root=root, **kwargs)
         self.ffm = FeatureFusionModule(256, 256)
         self.conv_out = BiSeNetOutput(256, 256, n_classes, up_factor=8)
         self.aux = aux
@@ -261,5 +264,5 @@ class BiSeDNet(nn.Module):
 def get_bised(dataset='nyud', backbone='resnet18', pretrained=True, root='./encoding/models/pretrain',
                fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, aux=None, **kwargs):
     from ...datasets import datasets
-    model = BiSeDNet(datasets[dataset.lower()].NUM_CLASS, root=root, aux=aux)
+    model = BiSeDNet(datasets[dataset.lower()].NUM_CLASS, root=root, aux=aux, **kwargs)
     return model

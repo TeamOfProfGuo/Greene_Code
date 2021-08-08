@@ -29,6 +29,8 @@ GPUS = [0, 1]
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--aux', type=str, default=None, help='mrf fuse settings')
+parser.add_argument('--sp', type=str, default=None, help='mrf fuse settings')
+parser.add_argument('--sp_conv', type=str, default=None, help='mrf fuse settings')
 settings = parser.parse_args()
 print(settings)
 model_kwargs = settings.__dict__
