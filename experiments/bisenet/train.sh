@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=bise
+#SBATCH --job-name=bised
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
@@ -8,7 +8,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=lg154@nyu.edu
-#SBATCH --output=bise.out
+#SBATCH --output=bised.out
 #SBATCH --gres=gpu # How much gpu need, n is the number
 
 module purge
