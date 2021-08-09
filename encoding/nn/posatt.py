@@ -558,3 +558,26 @@ class CMPA2a(nn.Module):
         x1 = torch.mul(x, att)
         return x1 + y
 
+
+
+class GCM(nn.Module):
+    def __init__(self, in_ch=None, shape=None):
+        super().__init__()
+        h, w = shape
+        self.ap1 = nn.AdaptiveAvgPool2d(1)
+        self.ap2 = nn.AdaptiveAvgPool2d(2)
+        self.ap3 = nn.AdaptiveAvgPool2d(3)
+        self.ap5 = nn.AdaptiveAvgPool2d(5)
+        self.ap10 = nn.AdaptiveAvgPool2d(10) if w>15 else None
+        self.ap15 = nn.AdaptiveAvgPool2d(15) if w>30 else None
+        self.ap30 = nn.AdaptiveAvgPool2d(30) if w>60 else None
+
+        ch = sum([1 if i is not None else 0 for i in [self.ap10, self.ap15, self.ap30]]) + 5
+        self.fc = nn.Sequential(nn.Conv2d(ch, 1, kernel_size=1),    # [B, 1, h, w]
+                                nn.BatchNorm2d(1),
+                                nn.Sigmoid())
+
+    def forward(self, y, x):
+        # x is dep, y is rgb.  x 浅层网络特征， y为深层网络特征
+        batch_size, ch, h, w = y.size()
+        pass

@@ -22,7 +22,7 @@ class Decoder(nn.Module):
 
 
 class Base_Decoder(nn.Module):
-    def __init__(self, decode_feat, n_classes, fuse_type='1stage', mrfs=None, aux=None, auxl=None, feat='m'):
+    def __init__(self, decode_feat, n_classes, fuse_type='1stage', mrfs=None, aux=None, auxl=None, feat='l'):
         super().__init__()
 
         self.feat, self.aux, self.auxl = feat, aux, auxl
@@ -49,6 +49,8 @@ class Base_Decoder(nn.Module):
     def forward(self, feats):
         if self.feat == 'm':
             l1, l2, l3, l4 = feats.m1, feats.m2, feats.m3, feats.m4
+        elif self.feat == 'l':
+            l1, l2, l3, l4 = feats.l1, feats.l2, feats.l3, feats.l4
 
         y4u = self.up4(l4)  # [B, 256, h/16, w/16]
         y3, _ = self.level_fuse3(y4u, l3)
