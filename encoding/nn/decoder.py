@@ -6,6 +6,8 @@ from torch.nn import functional as F
 from ..utils import parse_setting
 from .basic import BasicBlock, FCNHead
 from .fuse import Fuse_Block
+from .apnb import *
+from .afnb import *
 
 __all__ = ['Decoder']
 
@@ -22,10 +24,10 @@ class Decoder(nn.Module):
 
 
 class Base_Decoder(nn.Module):
-    def __init__(self, decode_feat, n_classes, fuse_type='1stage', mrfs=None, aux=None, auxl=None, feat='l'):
+    def __init__(self, decode_feat, n_classes, fuse_type='1stage', mrfs=None, aux=None, auxl=None, feat='l', dan=None):
         super().__init__()
 
-        self.feat, self.aux, self.auxl = feat, aux, auxl
+        self.feat, self.aux, self.auxl, self.dan = feat, aux, auxl, dan
         self.mrf_args = parse_setting(mrfs)
         mrf_att = self.mrf_args.pop('mrf', None)
 
@@ -40,6 +42,12 @@ class Base_Decoder(nn.Module):
 
         self.out_conv = nn.Sequential(BasicBlock(decode_feat[1], 128, upsample=True), BasicBlock(128, 128),
                                       nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
+
+        if self.dan == '21af':
+            afn_args = dict(low_in_channels=decode_feat[2], high_in_channels=decode_feat[1], out_channels=decode_feat[1],
+                            key_channels=decode_feat[1], value_channels=decode_feat[1], dropout=0.05, sizes=([1]), psp_size = (1, 3, 6, 8))
+            print('afn_args {}'.format(afn_args))
+            self.fuse = AFNB(**afn_args)
 
         if self.aux is not None:
             for i in self.aux:
@@ -60,6 +68,9 @@ class Base_Decoder(nn.Module):
 
         y2u = self.up2(y2)  # [B, 64, h/4, w/4]
         y1, _ = self.level_fuse1(y2u, l1)  # [B, 64, h/4, w/4]
+
+        if self.dan == '21af':
+            y1 = self.fuse(y2, y1)
 
         out = self.out_conv(y1)
         outputs = [F.interpolate(out, feats.in_size, mode='bilinear', align_corners=True)]

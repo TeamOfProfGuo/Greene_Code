@@ -115,7 +115,7 @@ class AFNB(nn.Module):
         features fused with Object context information.
     """
 
-    def __init__(self, low_in_channels, high_in_channels, out_channels, key_channels, value_channels, dropout,
+    def __init__(self, low_in_channels=None, high_in_channels=None, out_channels=None, key_channels=None, value_channels=None, dropout=0.05,
                  sizes=([1]), norm_type=None,psp_size=(1,3,6,8)):
         super(AFNB, self).__init__()
         self.stages = []

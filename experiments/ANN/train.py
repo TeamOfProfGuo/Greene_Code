@@ -31,7 +31,7 @@ parser = argparse.ArgumentParser(description='model specification')
 parser.add_argument('--mmfs', type=str, default=None, help='rgbd fuse settings')
 parser.add_argument('--mrfs', type=str, default=None, help='mrf fuse settings')
 parser.add_argument('--ctr', type=str, default=None, help='mrf fuse settings')
-
+parser.add_argument('--dan', type=str, default=None, help='mrf fuse settings')
 settings = parser.parse_args()
 print(settings)
 model_kwargs = settings.__dict__
