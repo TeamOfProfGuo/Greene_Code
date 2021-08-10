@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=rfu
+#SBATCH --job-name=$1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
@@ -8,7 +8,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=lg154@nyu.edu
-#SBATCH --output=rfu.out
+#SBATCH --output=$1.out
 #SBATCH --gres=gpu # How much gpu need, n is the number
 
 module purge
