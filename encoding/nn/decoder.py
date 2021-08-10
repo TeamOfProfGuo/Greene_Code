@@ -48,6 +48,10 @@ class Base_Decoder(nn.Module):
                             key_channels=decode_feat[1], value_channels=decode_feat[1], dropout=0.05, sizes=([1]), psp_size = (1, 3, 6, 8))
             print('afn_args {}'.format(afn_args))
             self.fuse = AFNB(**afn_args)
+        elif self.dan == '321af':
+            afn_args = dict(low_in_channels=decode_feat[2:4], high_in_channels=decode_feat[1], out_channels=decode_feat[1],
+                            key_channels=decode_feat[1], value_channels=decode_feat[1], dropout=0.05, norm_type=None, psp_size=(1,3,6,8))
+            self.fuse= AFNM(**afn_args)
 
         if self.aux is not None:
             for i in self.aux:
@@ -71,6 +75,8 @@ class Base_Decoder(nn.Module):
 
         if self.dan == '21af':
             y1 = self.fuse(y2, y1)
+        if self.dan == '321af':
+            y1 = self.fuse([y2, y3], y1)
 
         out = self.out_conv(y1)
         outputs = [F.interpolate(out, feats.in_size, mode='bilinear', align_corners=True)]

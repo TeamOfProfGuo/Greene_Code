@@ -28,7 +28,7 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = 'experiments/ANN/results/config.yaml'
+CONFIG_PATH = 'experiments/test_init/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
@@ -36,11 +36,8 @@ GPUS = [0,1]
 # =====================  setup  ======================
 # model settings
 parser = argparse.ArgumentParser(description='model specification')
-parser = argparse.ArgumentParser(description='model specification')
-parser.add_argument('--mmfs', type=str, default='mmf=CA2b|act_fn=sigmoid', help='rgbd fuse settings')
-parser.add_argument('--mrfs', type=str, default=None, help='mrf fuse settings')
-parser.add_argument('--ctr', type=str, default='apn', help='mrf fuse settings')
-parser.add_argument('--dan', type=str, default='321af', help='mrf fuse settings')
+parser.add_argument('--mmf_att', type=str, default='CA2a', help='Attention type to fuse rgb and dep')
+parser.add_argument('--act_fn', type=str, default='softmax', help='Attention type to fuse rgb and dep')
 settings = parser.parse_args([])
 print(settings)
 
@@ -82,18 +79,20 @@ print(model)
 
 # optimizer using different LR
 
-base_ids = list(map(id, model.base.parameters()))
+base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
+base_ids = utils.get_param_ids(base_modules)
 other_params = filter(lambda p: id(p) not in base_ids, model.parameters())
 optimizer = torch.optim.SGD([{'params': model.base.parameters(), 'lr': args.lr},
+                             {'params': model.dep_base.parameters(), 'lr': args.lr*2},
                              {'params': other_params, 'lr': args.lr*10}],
                             lr=args.lr,momentum=args.momentum, weight_decay=args.weight_decay)
 
 # criterions
 criterion = SegmentationLosses(se_loss=args.se_loss,
-                                            aux=model_kwargs.get('aux'),
-                                            nclass=nclass,
-                                            se_weight=args.se_weight,
-                                            aux_weight=args.aux_weight)
+                                    aux=args.aux,
+                                    nclass=nclass,
+                                    se_weight=args.se_weight,
+                                    aux_weight=args.aux_weight)
 
 scheduler = utils.LR_Scheduler_Head(args.lr_scheduler, args.lr, args.epochs, len(trainloader), warmup_epochs=1)
 best_pred = 0.0
@@ -124,23 +123,21 @@ optimizer.zero_grad()
 
 
 
+# check CPU/GPU usage
+import torch.autograd.profiler as profiler
+# check memory usage
+with profiler.profile(profile_memory=True, record_shapes=True) as prof:
+    outputs = model(image, dep)
+print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
 
-outputs = model(image, dep)
+# with profiler.profile(record_shapes=True) as prof:
+#     with profiler.record_function("model_inference"):
+#         outputs = model(image, dep)
+# print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
-loss = criterion(*outputs, target)
+
+loss = criterion(outputs, target)
 loss.backward()
 optimizer.step()
 
 train_loss += loss.item()
-
-model.eval()
-total_inter, total_union, total_correct, total_label, total_loss = 0, 0, 0, 0, 0
-for i, (image, dep, target) in enumerate(valloader):
-    image, dep, target = image.to(device), dep.to(device), target.to(device)
-    break
-
-pred = model(image, dep)
-loss = criterion(*pred, target)
-pred = pred[0]
-correct, labeled = utils.batch_pix_accuracy(pred.data, target)
-inter, union = utils.batch_intersection_union(pred.data, target, nclass)

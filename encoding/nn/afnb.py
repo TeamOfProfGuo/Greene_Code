@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-__all__ = ['AFNB']
+__all__ = ['AFNB', 'AFNM']
 
 class PSPModule(nn.Module):
     # (1, 2, 3, 6)
@@ -145,5 +145,33 @@ class AFNB(nn.Module):
         context = priors[0]
         for i in range(1, len(priors)):
             context += priors[i]
+        output = self.conv_bn_dropout(torch.cat([context, high_feats], 1))
+        return output
+
+
+class AFNM(nn.Module):
+    def __init__(self, low_in_channels=None, high_in_channels=None, out_channels=None, key_channels=None, value_channels=None, dropout=0.05,
+                 norm_type=None, psp_size=(1,3,6,8)):
+        super(AFNM, self).__init__()
+        self.norm_type = norm_type
+        self.psp_size = psp_size
+        self.stages = nn.ModuleList(
+            [self._make_stage([low_in_ch, high_in_channels], out_channels, key_channels, value_channels, size=1) for
+             low_in_ch in low_in_channels])
+        self.conv_bn_dropout = nn.Sequential(
+            nn.Conv2d(out_channels + high_in_channels, out_channels, kernel_size=1, padding=0),
+            nn.BatchNorm2d(out_channels),
+            nn.Dropout2d(dropout)
+        )
+
+    def _make_stage(self, in_channels, output_channels, key_channels, value_channels, size):
+        return SelfAttentionBlock2D(in_channels[0], in_channels[1], key_channels, value_channels, output_channels, size,
+                                    self.norm_type, psp_size=self.psp_size)
+
+    def forward(self, low_feats, high_feats):
+        context = self.stages[0](low_feats[0], high_feats)
+        for i, low_feat in enumerate(low_feats[1:]):
+            new = self.stages[i+1](low_feat, high_feats)
+            context = context+new
         output = self.conv_bn_dropout(torch.cat([context, high_feats], 1))
         return output
