@@ -604,7 +604,6 @@ class AttGate6(nn.Module):
         else:
             self.activation = None
 
-
     def forward(self, y, x):
         x1 = self.x_conv(x)      # [B, c, h, w]
 
