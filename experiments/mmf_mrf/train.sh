@@ -18,6 +18,8 @@ source activate python36
 module load cuda/10.2.89 
 #module load cudnn/7.5
 
+#GREENE GREENE_GPU_MPS=yes
+
 mkdir -p log 
 for arg
 do python train.py $arg > log/$arg.log 2>&1 &
