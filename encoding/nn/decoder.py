@@ -68,7 +68,7 @@ class Base_Decoder(nn.Module):
 
         if self.aux is not None:
             for i in self.aux:
-                j = i - 1 if self.auxl == 'u' else i
+                j = int(i) - 1 if self.auxl == 'u' else int(i)
                 self.add_module('auxlayer' + str(i), FCNHead(decode_feat[j], n_classes))
 
     def forward(self, feats):
@@ -100,6 +100,7 @@ class Base_Decoder(nn.Module):
         if self.aux is not None:
             yd = {3: y3, 2: y2, 1: y1} if self.auxl == None else {4: y4u, 3: y3u, 2: y2u, 1: y1}
             for i in self.aux:
+                i = int(i)
                 aux_out = self.__getattr__("auxlayer" + str(i))(yd[i])
                 aux_out = F.interpolate(aux_out, feats.in_size, mode='bilinear', align_corners=True)
                 outputs.append(aux_out)
