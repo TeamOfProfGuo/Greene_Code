@@ -69,9 +69,9 @@ class SegmentationLosses(nn.CrossEntropyLoss):
         elif not self.se_loss:
             target = inputs[-1]
             loss = super(SegmentationLosses, self).forward(inputs[0], target)
-            loss0 = loss
+            #loss0 = loss
             for i in range(1, len(self.aux)+1):
-                loss += super(SegmentationLosses, self).forward(inputs[i], target)*self.aux_weight
+                loss += super(SegmentationLosses, self).forward(inputs[i], target)*self.aux_weight/len(self.aux)
             return loss
 
         elif not self.aux:

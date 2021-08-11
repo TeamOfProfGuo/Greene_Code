@@ -20,7 +20,11 @@ class PosAtt0(nn.Module):
     def __init__(self, ch, shape=None, r=4, act_fn='sigmoid', conv=None, fuse='add'):
         super(PosAtt0, self).__init__()
         int_ch = max(ch//r, 32)
-        self.act_fn, self.conv, self.fuse = act_fn, conv, fuse
+        self.act_fn = act_fn
+        if act_fn == 'sigmoid':
+            self.conv, self.fuse = 'conv', 'cat'
+        elif act_fn == 'tanh':
+            self.conv, self.fuse = 'conv', 'add'
         self.W_x = nn.Sequential(nn.Conv2d(ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),
                                  nn.BatchNorm2d(int_ch))
         self.W_y = nn.Sequential(nn.Conv2d(ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),

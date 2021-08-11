@@ -40,18 +40,31 @@ class Base_Decoder(nn.Module):
         self.level_fuse2 = Fuse_Block(decode_feat[2], shape=(60, 60), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
         self.level_fuse1 = Fuse_Block(decode_feat[1], shape=(120, 120), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
 
+        encode_feat = [None, 64, 128, 256, 512]
+        for i in range(1, 4):
+            if decode_feat[i] != encode_feat[i]:
+                self.add_module('proc'+str(i), nn.Conv2d(encode_feat[i], decode_feat[i], kernel_size=1, stride=1))
+            else:
+                self.add_module('proc'+str(i), nn.Identity())
+
         self.out_conv = nn.Sequential(BasicBlock(decode_feat[1], 128, upsample=True), BasicBlock(128, 128),
                                       nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
 
-        if self.dan == '21af':
+        if self.dan in ['21af', 'aaf']:
             afn_args = dict(low_in_channels=decode_feat[2], high_in_channels=decode_feat[1], out_channels=decode_feat[1],
                             key_channels=decode_feat[1], value_channels=decode_feat[1], dropout=0.05, sizes=([1]), psp_size = (1, 3, 6, 8))
-            print('afn_args {}'.format(afn_args))
-            self.fuse = AFNB(**afn_args)
+            print('afn_args 21 {}'.format(afn_args))
+            self.fuse21 = AFNB(**afn_args)
+            if self.dan == 'aaf':
+                afn_args = dict(low_in_channels=decode_feat[3], high_in_channels=decode_feat[2], out_channels=decode_feat[2],
+                                key_channels=decode_feat[2], value_channels=decode_feat[2], dropout=0.05, sizes=([1]), psp_size=(1, 3, 6, 8))
+                print('afn_args 32 {}'.format(afn_args))
+                self.fuse32 = AFNB(**afn_args)
+
         elif self.dan == '321af':
             afn_args = dict(low_in_channels=decode_feat[2:4], high_in_channels=decode_feat[1], out_channels=decode_feat[1],
                             key_channels=decode_feat[1], value_channels=decode_feat[1], dropout=0.05, norm_type=None, psp_size=(1,3,6,8))
-            self.fuse= AFNM(**afn_args)
+            self.fuse321= AFNM(**afn_args)
 
         if self.aux is not None:
             for i in self.aux:
@@ -70,13 +83,16 @@ class Base_Decoder(nn.Module):
         y3u = self.up3(y3)  # [B, 128, h/8, w/8]
         y2, _ = self.level_fuse2(y3u, l2)  # [B, 128, h/8, w/8]
 
+        if self.dan == 'aaf':
+            y2 = self.fuse32(y3, y2)
+
         y2u = self.up2(y2)  # [B, 64, h/4, w/4]
         y1, _ = self.level_fuse1(y2u, l1)  # [B, 64, h/4, w/4]
 
-        if self.dan == '21af':
-            y1 = self.fuse(y2, y1)
+        if self.dan in ['21af', 'aaf']:
+            y1 = self.fuse21(y2, y1)
         if self.dan == '321af':
-            y1 = self.fuse([y2, y3], y1)
+            y1 = self.fuse321([y2, y3], y1)
 
         out = self.out_conv(y1)
         outputs = [F.interpolate(out, feats.in_size, mode='bilinear', align_corners=True)]
@@ -88,3 +104,11 @@ class Base_Decoder(nn.Module):
                 aux_out = F.interpolate(aux_out, feats.in_size, mode='bilinear', align_corners=True)
                 outputs.append(aux_out)
         return outputs
+
+
+class IDT_Block(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, x):
+        return x
