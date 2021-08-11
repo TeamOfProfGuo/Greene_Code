@@ -17,8 +17,11 @@ def get_args(s, i):
 
 
 def get_model_args(exp_args):
-    mmfs = 'mmf=' + module_dict[get_args(exp_args,0)]
-    mrfs = 'mrf=' + module_dict[get_args(exp_args,1)]
+    mmf_args = module_dict[get_args(exp_args,0)]
+    mmfs = 'mmf=' + mmf_args if mmf_args is not None else None
+
+    mrf_args = module_dict[get_args(exp_args,1)]
+    mrfs = 'mrf=' + mrf_args if mrf_args is not None else None
     ctr = center_dict[get_args(exp_args,2)]
     model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr)
     return model_args
