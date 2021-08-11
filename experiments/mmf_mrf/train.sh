@@ -19,7 +19,8 @@ module load cuda/10.2.89
 #module load cudnn/7.5
 
 mkdir -p log 
-python train.py  >log/train_simple.log 2>& 1
-echo $1
-python train.py $1 > log/$1.log 2>&1 &
+for arg
+do python train.py $arg > log/$arg.log 2>&1 &
+done
 echo "FINISH"
+wait

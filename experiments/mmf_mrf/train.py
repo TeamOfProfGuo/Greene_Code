@@ -62,7 +62,8 @@ class Trainer():
                                        **model_kwargs)
         print(model)
         # optimizer using different LR
-        base_ids = list(map(id, model.base.parameters()))
+        base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
+        base_ids = utils.get_param_ids(base_modules)
         base_params = filter(lambda p: id(p) in base_ids, model.parameters())
         other_params = filter(lambda p: id(p) not in base_ids, model.parameters())
         self.optimizer = torch.optim.SGD([{'params': base_params, 'lr': args.lr},
