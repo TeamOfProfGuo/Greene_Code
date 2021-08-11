@@ -20,7 +20,7 @@ def get_model_args(exp_args):
     mmfs = 'mmf=' + module_dict[get_args(exp_args,0)]
     mrfs = 'mrf=' + module_dict[get_args(exp_args,1)]
     ctr = center_dict[get_args(exp_args,2)]
-    model_args = dict(mmfs=mmfs, mrf=mrfs, ctr=ctr)
+    model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr)
     return model_args
 
 
