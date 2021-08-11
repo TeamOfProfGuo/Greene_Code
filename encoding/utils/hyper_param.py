@@ -13,6 +13,7 @@ center_dict = {'0':None, None:None,  '1': 'apn'}
 # 321af: y1与y2, y3融合，  'aaf': stage-wise融合
 dan_dict = {'0':None, None:None, '1':'21af', '2': '321af', '3': 'aaf'}  # 321af: y1与y2, y3融合，
 
+aux_dict = {'0':None, None:None, '1':'1', '2':'2', '3':'3', '4':'21', '5':'32', '6':'321'}
 
 def get_args(s, i):
     try:
@@ -30,8 +31,9 @@ def get_model_args(exp_args):
 
     ctr = center_dict[get_args(exp_args, 2)]
     dan = dan_dict[get_args(exp_args, 3)]
+    aux = aux_dict[get_args(exp_args, 4)]
 
-    model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr, dan=dan)
+    model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr, dan=dan, aux=aux)
     return model_args
 
 
