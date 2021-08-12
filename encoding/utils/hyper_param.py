@@ -13,7 +13,8 @@ center_dict = {'0':None, None:None,  '1': 'apn'}
 # 321af: y1与y2, y3融合，  'aaf': stage-wise融合
 dan_dict = {'0':None, None:None, '1':'21af', '2': '321af', '3': 'aaf'}  # 321af: y1与y2, y3融合，
 
-aux_dict = {'0':None, None:None, '1':'1', '2':'2', '3':'3', '4':'21', '5':'32', '6':'321'}
+aux_dict = {'0':None, None:None, '1':'1', '2':'2', '3':'3', '4':'4', '5':'32', '6':'21', '7':'43', '8':'321', '9':'432'
+            }
 
 def get_args(s, i):
     try:

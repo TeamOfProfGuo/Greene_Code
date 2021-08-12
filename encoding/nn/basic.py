@@ -44,6 +44,43 @@ class BasicBlock(nn.Module):
         return out
 
 
+class IRB_Block(nn.Module):
+    def __init__(self, in_feats, out_feats=None, act='idt', expand_ratio=6):
+        super().__init__()
+        mid_feats = round(in_feats * expand_ratio)
+        out_feats = in_feats if out_feats is None else out_feats
+        act_layer = nn.Identity() if act == 'idt' else nn.ReLU6(inplace=True)
+        self.idt = (in_feats == out_feats)
+        self.irb = nn.Sequential(
+                # point-wise conv
+                nn.Conv2d(in_feats, mid_feats, kernel_size=1, stride=1, padding=0, bias=False),
+                nn.BatchNorm2d(mid_feats),
+                nn.ReLU6(inplace=True),
+                # depth-wise conv
+                nn.Conv2d(mid_feats, mid_feats, kernel_size=3, stride=1, padding=1, groups=mid_feats, bias=False),
+                nn.BatchNorm2d(mid_feats),
+                nn.ReLU6(inplace=True),
+                # point-wise conv
+                nn.Conv2d(mid_feats, out_feats, kernel_size=1, stride=1, padding=0, bias=False),
+                nn.BatchNorm2d(out_feats),
+                act_layer
+            )
+
+    def forward(self, x):
+        return (x + self.irb(x)) if self.idt else self.irb(x)
+
+
+class LearnedUpUnit(nn.Module):
+    def __init__(self, in_feats):
+        super().__init__()
+        self.up = nn.UpsamplingNearest2d(scale_factor=2)
+        self.dep_conv = nn.Conv2d(in_feats, in_feats, kernel_size=3, stride=1, padding=1, groups=in_feats, bias=False)
+
+    def forward(self, x):
+        x = self.up(x)
+        x = self.dep_conv(x)
+        return x
+
 
 class ConvBNReLU(nn.Module):
 

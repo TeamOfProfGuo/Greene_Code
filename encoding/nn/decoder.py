@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from ..utils import parse_setting
-from .basic import BasicBlock, FCNHead
+from .basic import BasicBlock, FCNHead, IRB_Block, LearnedUpUnit
 from .fuse import Fuse_Block
 from .apnb import *
 from .afnb import *
@@ -32,9 +32,9 @@ class Base_Decoder(nn.Module):
         mrf_att = self.mrf_args.pop('mrf', None)
 
         # decode_feat = [None, 64, 128, 256, 512]
-        self.up4 = nn.Sequential(BasicBlock(decode_feat[4], decode_feat[4]), BasicBlock(decode_feat[4], decode_feat[3], upsample=True))
-        self.up3 = nn.Sequential(BasicBlock(decode_feat[3], decode_feat[3]), BasicBlock(decode_feat[3], decode_feat[2], upsample=True))
-        self.up2 = nn.Sequential(BasicBlock(decode_feat[2], decode_feat[2]), BasicBlock(decode_feat[2], decode_feat[1], upsample=True))
+        self.up4 = Res_Up_Block(decode_feat[4], decode_feat[3])
+        self.up3 = Res_Up_Block(decode_feat[3], decode_feat[2])
+        self.up2 = Res_Up_Block(decode_feat[2], decode_feat[1])
 
         self.level_fuse3 = Fuse_Block(decode_feat[3], shape=(30, 30), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
         self.level_fuse2 = Fuse_Block(decode_feat[2], shape=(60, 60), mmf_att=mrf_att, fuse_type=fuse_type, **self.mrf_args)
@@ -68,8 +68,8 @@ class Base_Decoder(nn.Module):
 
         if self.aux is not None:
             for i in self.aux:
-                j = int(i) - 1 if self.auxl == 'u' else int(i)
-                self.add_module('auxlayer' + str(i), FCNHead(decode_feat[j], n_classes))
+                j = int(i)
+                self.add_module('auxlayer' + str(j), FCNHead(decode_feat[j], n_classes))
 
     def forward(self, feats):
         if self.feat == 'm':
@@ -77,16 +77,16 @@ class Base_Decoder(nn.Module):
         elif self.feat == 'l':
             l1, l2, l3, l4 = feats.l1, feats.l2, feats.l3, feats.l4
 
-        y4u = self.up4(l4)  # [B, 256, h/16, w/16]
-        y3, _ = self.level_fuse3(y4u, l3)
+        y4u, y4a = self.up4(l4)  # [B, 256, h/16, w/16], [B, 512, h/32, w/32]
+        y3, _ = self.level_fuse3(y4u, l3)  # [B, 256, h/16, w/16]
 
-        y3u = self.up3(y3)  # [B, 128, h/8, w/8]
+        y3u, y3a = self.up3(y3)  # [B, 128, h/8, w/8]
         y2, _ = self.level_fuse2(y3u, l2)  # [B, 128, h/8, w/8]
 
         if self.dan == 'aaf':
             y2 = self.fuse32(y3, y2)
 
-        y2u = self.up2(y2)  # [B, 64, h/4, w/4]
+        y2u, y2a = self.up2(y2)  # [B, 64, h/4, w/4]
         y1, _ = self.level_fuse1(y2u, l1)  # [B, 64, h/4, w/4]
 
         if self.dan in ['21af', 'aaf']:
@@ -98,18 +98,44 @@ class Base_Decoder(nn.Module):
         outputs = [F.interpolate(out, feats.in_size, mode='bilinear', align_corners=True)]
 
         if self.aux is not None:
-            yd = {3: y3, 2: y2, 1: y1} if self.auxl == None else {4: y4u, 3: y3u, 2: y2u, 1: y1}
+            if self.auxl is None or self.auxl =='f':
+                yd = {3: y3, 2: y2, 1: y1}
+            elif self.auxl == 'a':
+                yd = {4: y4a, 3: y3a, 2: y2a}
             for i in self.aux:
                 i = int(i)
                 aux_out = self.__getattr__("auxlayer" + str(i))(yd[i])
-                aux_out = F.interpolate(aux_out, feats.in_size, mode='bilinear', align_corners=True)
+                # aux_out = F.interpolate(aux_out, feats.in_size, mode='bilinear', align_corners=True)
                 outputs.append(aux_out)
         return outputs
 
 
-class IDT_Block(nn.Module):
-    def __init__(self, *args, **kwargs):
+class Res_Up_Block(nn.Module):
+    def __init__(self, in_ch, out_ch, upsample=True):
         super().__init__()
+        self.bk1 = BasicBlock(in_ch, in_ch)
+        self.bk2 = BasicBlock(in_ch, out_ch, upsample=upsample)
 
     def forward(self, x):
-        return x
+        feat1 = self.bk1(x)
+        out = self.bk2(feat1)
+        return out, feat1
+
+
+class IRB_Up_Block(nn.Module):
+    def __init__(self, in_feats, aux=False):
+        super().__init__()
+        self.aux = aux
+        self.conv_unit = nn.Sequential(
+            IRB_Block(2*in_feats, 2*in_feats),
+            IRB_Block(2*in_feats, 2*in_feats),
+            IRB_Block(2*in_feats, in_feats)
+        )
+        self.up_unit = LearnedUpUnit(in_feats)
+
+    def forward(self, x):
+        feats = self.conv_unit(x)
+        if self.aux:
+            return self.up_unit(feats), feats
+        else:
+            return self.up_unit(feats)

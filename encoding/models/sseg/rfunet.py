@@ -16,13 +16,13 @@ __all__ = ['RFUNet', 'get_rfunet']
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl=None, dtype='base', ctr=None, dan=None, **kwargs):
+                 fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='base', ctr=None, dan=None, **kwargs):
         """ axu: '321', '32', '21', '3', '2', '1' """
         super(RFUNet, self).__init__()
         self.ctr = ctr
         self.mmf_args = parse_setting(mmfs, sep_out='|', sep_in='=')
         mmf_att = self.mmf_args.pop('mmf', None)
-        print('++++++mmf:{}, mmf_args:{}+++++++'.format(mmf_att, self.mmf_args))
+        print('++++++aux:{}++++++auxl:{}++++++mmf:{}, mmf_args:{}+++++++'.format(aux, auxl, mmf_att, self.mmf_args))
 
         self.base = get_resnet18(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
 
@@ -88,7 +88,7 @@ class RFUNet(nn.Module):
         return outputs
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-               fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, auxl=None, **kwargs):
+               fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, auxl='a', **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
                    fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmfs=mmfs, mrfs=mrfs, auxl=auxl, **kwargs)

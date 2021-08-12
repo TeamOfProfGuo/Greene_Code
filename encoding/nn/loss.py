@@ -68,11 +68,16 @@ class SegmentationLosses(nn.CrossEntropyLoss):
             return super(SegmentationLosses, self).forward(*inputs)
         elif not self.se_loss:
             target = inputs[-1]
-            loss = super(SegmentationLosses, self).forward(inputs[0], target)
+            loss1 = super(SegmentationLosses, self).forward(inputs[0], target)
             #loss0 = loss
+            aux_loss = []
             for i in range(1, len(self.aux)+1):
-                loss += super(SegmentationLosses, self).forward(inputs[i], target)*self.aux_weight/len(self.aux)
-            return loss
+                aux_feat = inputs[i]
+                _, _, h, w = aux_feat.size()
+                aux_target = F.interpolate(target.unsqueeze(1).float(), size=(h, w)).long().squeeze(1)
+                aux_loss.append( super(SegmentationLosses, self).forward(aux_feat, aux_target) )
+            loss2 = sum(aux_loss)/len(aux_loss)
+            return loss1 + loss2*self.aux_weight
 
         elif not self.aux:
             pred, se_pred, target = tuple(inputs)
