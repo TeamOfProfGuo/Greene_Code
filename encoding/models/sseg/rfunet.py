@@ -19,7 +19,7 @@ class RFUNet(nn.Module):
                  fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='base', ctr=None, dan=None, **kwargs):
         """ axu: '321', '32', '21', '3', '2', '1' """
         super(RFUNet, self).__init__()
-        self.ctr = ctr
+        self.ctr, self.dtype = ctr, dtype
         self.mmf_args = parse_setting(mmfs, sep_out='|', sep_in='=')
         mmf_att = self.mmf_args.pop('mmf', None)
         print('++++++aux:{}++++++auxl:{}++++++mmf:{}, mmf_args:{}+++++++'.format(aux, auxl, mmf_att, self.mmf_args))
@@ -52,10 +52,9 @@ class RFUNet(nn.Module):
             print('settings for APNB is {}'.format(apn_args))
             self.ctr_blk = APNB(**apn_args)
 
-        decode_feat = [64, 64, 128, 256, 512]
-        d_args = {'dtype': 'base', 'aux': aux, 'auxl': auxl, 'feat': 'l', 'fuse_type': mrf_fuse_type, 'mrfs': mrfs, 'dan': dan}
+        d_args = {'dtype': dtype, 'aux': aux, 'auxl': auxl, 'feat': 'l', 'fuse_type': mrf_fuse_type, 'mrfs': mrfs, 'dan': dan}
         print('decoder setting {}'.format(d_args))
-        self.decoder = Decoder(decode_feat, n_classes, **d_args)
+        self.decoder = Decoder(n_classes, **d_args)
 
     def forward(self, x, d):
         _, _, h, w = x.size()

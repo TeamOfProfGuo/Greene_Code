@@ -58,7 +58,7 @@ class Trainer():
 
         # model and params
         model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True,
-                                       root='../../encoding/models/pretrain',
+                                       root='../../encoding/models/pretrain', dtype=args.dtype,
                                        **model_kwargs)
         print(model)
         # optimizer using different LR

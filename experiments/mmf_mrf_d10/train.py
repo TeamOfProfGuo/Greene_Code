@@ -29,8 +29,7 @@ GPUS = [0, 1]
 print('[Exp Name]:', sys.argv[1])
 print("-------mark program start----------")
 # configuration
-from hyper_param import get_model_args
-model_kwargs = get_model_args(sys.argv[1])
+model_kwargs = utils.get_model_args(sys.argv[1])
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print('model_kwargs {}'.format(model_kwargs))
 
