@@ -127,25 +127,50 @@ class PosAtt1(nn.Module):
 
 
 
+
 class PosAtt2(nn.Module):
-    def __init__(self, in_ch, r=4):
-        super(PosAtt2, self).__init__()
-        int_ch = max(in_ch//r, 32)
-        self.fc = nn.Sequential(nn.Conv2d(2*in_ch, int_ch, kernel_size=1, stride=1, padding=0, bias=True),
-                                nn.BatchNorm2d(int_ch),
-                                nn.ReLU(inplace=True))
+    def __init__(self, in_ch=None, shape=None, act_fn='sigmoid'):
+        super().__init__()
+        self.act_fn = act_fn
+        if self.act_fn == 'sigmoid':
+            self.conv, self.fuse = 'conv', 'cat'
+        elif self.act_fn == 'tanh':
+            self.conv, self.fuse = 'conv', 'add'
 
-        self.psi = nn.Sequential(nn.Conv2d(int_ch, 2, kernel_size=1, stride=1, padding=0, bias=True),
-                                 nn.BatchNorm2d(2),
-                                 nn.Softmax(dim=1))
+        self.conv_xy = nn.Conv2d(in_ch * 2, in_ch, kernel_size=1, stride=1, groups=in_ch, bias=False)
+        self.conv_xy.weight.data.fill_(0.5)
+        self.bn_xy = nn.BatchNorm2d(in_ch)
 
-    def forward(self, x, y):
-        m = torch.cat((x, y), dim=1)   # [B, 2c, h, w]
-        m = self.fc(m)                 # [B, int_c, h, w]
-        psi = self.psi(m)              # [B, 2, h, w]
+        self.spatial = nn.Sequential(nn.Conv2d(in_ch, 1, kernel_size=1, stride=1),
+                                     nn.BatchNorm2d(1))
 
-        out = x * psi[:, :1].contiguous() + y * psi[:, 1:].contiguous()
-        return out
+        self.x_conv = nn.Sequential(nn.Conv2d(in_ch, in_ch, kernel_size=3, padding=1, bias=False),
+                                        nn.BatchNorm2d(in_ch))
+
+        if self.fuse == 'cat':
+            self.out_conv = nn.Conv2d(in_ch * 2, in_ch, kernel_size=1, stride=1)
+
+    def forward(self, y, x):  # x 为浅层网络， y为深层网络
+        batch_size, ch, h, w = x.size()
+
+        xy = torch.cat((x.view(batch_size, ch, -1),
+                        y.view(batch_size, ch, -1)), dim=-1)      # [B, c, 2hw]
+        xy = xy.view(batch_size, 2*ch, h, w).contiguous()         # [B, 2c, h, w]
+        xy = F.relu(self.bn_xy(self.conv_xy(xy)), inplace=True)   # [B, c, h, w]
+
+        att = self.spatial(xy)               # [B, 1, h, w]
+
+        if self.act_fn == 'sigmoid':
+            att = F.sigmoid(att)
+        elif self.act_fn == 'tanh':
+            att = F.tanh(F.relu(att, inplace=True))  # [B, 1, h, w]
+
+        weighted_x = self.x_conv(x)*att
+
+        if self.fuse == 'add':
+            return weighted_x + y
+        elif self.fuse == 'cat':
+            return self.out_conv(torch.cat((weighted_x, y), dim=1))
 
 
 class PosAtt3(nn.Module):
@@ -184,28 +209,52 @@ class PosAtt3c(nn.Module):
         return out
 
 
-
 class PosAtt3a(nn.Module):
-    def __init__(self, in_ch=None):
+    def __init__(self, in_ch=None, shape=None, act_fn='sigmoid'):
         super().__init__()
-        kernel_size = 7
-        self.compress = ChannelPool()
-        self.conv_x = nn.Conv2d(in_ch, 2, kernel_size=1)
-        self.conv_y = nn.Conv2d(in_ch, 2, kernel_size=1)
-        self.spatial = nn.Sequential(nn.Conv2d(8, 2, kernel_size=kernel_size, stride=1, padding=(kernel_size-1)//2),
-                                     nn.BatchNorm2d(2),
-                                     nn.Softmax(dim=1) )
+        self.act_fn = act_fn
+        if self.act_fn == 'sigmoid':
+            self.conv, self.fuse = 'conv', 'cat'
+        elif self.act_fn == 'tanh':
+            self.conv, self.fuse = 'conv', 'add'
 
-    def forward(self, x, y):
+        self.compress = ChannelPool()
+        self.conv_xy = nn.Conv2d(in_ch * 2, in_ch, kernel_size=1, stride=1, groups=in_ch, bias=False)
+        self.conv_xy.weight.data.fill_(0.5)
+        self.bn_xy = nn.BatchNorm2d(in_ch)
+
+        self.spatial = nn.Sequential(nn.Conv2d(in_ch+4, 1, kernel_size=1, stride=1),
+                                     nn.BatchNorm2d(1))
+
+        self.x_conv = nn.Sequential(nn.Conv2d(in_ch, in_ch, kernel_size=3, padding=1, bias=False),
+                                        nn.BatchNorm2d(in_ch))
+
+        if self.fuse == 'cat':
+            self.out_conv = nn.Conv2d(in_ch * 2, in_ch, kernel_size=1, stride=1)
+
+    def forward(self, y, x):  # x 为浅层网络， y为深层网络
+        batch_size, ch, h, w = x.size()
         x1 = self.compress(x)         # [B, 2, h, w]
         y1 = self.compress(y)         # [B, 2, h, w]
-        x2 = self.conv_x(x)           # [B, 2, h, w]
-        y2 = self.conv_y(y)           # [B, 2, h, w]
+        xy = torch.cat((x.view(batch_size, ch, -1),
+                        y.view(batch_size, ch, -1)), dim=-1)      # [B, c, 2hw]
+        xy = xy.view(batch_size, 2*ch, h, w).contiguous()         # [B, 2c, h, w]
+        xy = F.relu(self.bn_xy(self.conv_xy(xy)), inplace=True)   # [B, c, h, w]
 
-        m = torch.cat((x1, y1, x2, y2), dim=1)  # [B, 8, h, w]
-        att = self.spatial(m)        # [B, 2, h, w]
-        out = x * att[:, :1].contiguous() + y * att[:, 1:].contiguous()
-        return out
+        m = torch.cat((x1, y1, xy), dim=1)  # [B, c+4, h, w]
+        att = self.spatial(m)               # [B, 1, h, w]
+
+        if self.act_fn == 'sigmoid':
+            att = F.sigmoid(att)
+        elif self.act_fn == 'tanh':
+            att = F.tanh(F.relu(att, inplace=True))  # [B, 1, h, w]
+
+        weighted_x = self.x_conv(x)*att
+
+        if self.fuse == 'add':
+            return weighted_x + y
+        elif self.fuse == 'cat':
+            return self.out_conv(torch.cat((weighted_x, y), dim=1))
 
 
 class PosAtt4(nn.Module):

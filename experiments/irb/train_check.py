@@ -33,7 +33,7 @@ SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
 
-model_kwargs = utils.get_model_args('6801')
+model_kwargs = utils.get_model_args('3d')
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print(model_kwargs)
 
