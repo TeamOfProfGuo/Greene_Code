@@ -28,12 +28,12 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = 'experiments/irb/results/config.yaml'
+CONFIG_PATH = 'experiments/irb_ca2_pa0S/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
 
-model_kwargs = utils.get_model_args('6801')
+model_kwargs = utils.get_model_args('47009')
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print(model_kwargs)
 

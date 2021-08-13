@@ -166,7 +166,7 @@ class IRB_Decoder(nn.Module):
         if self.aux:
             for i in self.aux:    # note 经过 self.up4 block 之后， 通道数减半
                 self.add_module('aux'+str(i),
-                                nn.Conv2d(decode_feat[int(i)//2], n_classes, kernel_size=1, stride=1, padding=0, bias=True))
+                                nn.Conv2d(decode_feat[int(i)]//2, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
 
         self.out_conv = nn.Sequential(
             nn.Conv2d(decode_feat[1], n_classes, kernel_size=1, stride=1, padding=0, bias=True),
