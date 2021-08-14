@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-__all__ = ['BasicBlock', 'FuseBlock', 'ConvBNReLU', 'CenterBlock', 'FCNHead']
+__all__ = ['BasicBlock', 'FuseBlock', 'ConvBNReLU', 'CenterBlock', 'FCNHead', 'IRB_Block', 'customized_module']
 
 
 class BasicBlock(nn.Module):
@@ -42,6 +42,25 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
+
+
+def customized_module(info, feats):
+    module_dict = {
+            'rbb': BasicBlock,
+            'luu': LearnedUpUnit,
+            'irb': IRB_Block,
+        }
+    # Format1: 'xxx[a->b]', i.e. 'module[in_feats->out_feats]'
+    # Format2: 'xxx(a)', i.e. 'module(feats)'
+    module_name = info[:3]
+    assert module_name in module_dict
+    # print(info)
+    if info.find('(') != -1:
+        return module_dict[module_name]((int(info[4]) * feats // 2))
+    elif info.find('[') != -1:
+        return module_dict[module_name]((int(info[4]) * feats // 2), (int(info[7]) * feats // 2))
+    else:
+        raise ValueError('Invalid customized module format: %s' % info)
 
 
 class IRB_Block(nn.Module):

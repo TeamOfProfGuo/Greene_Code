@@ -16,7 +16,7 @@ __all__ = ['RFUNet', 'get_rfunet']
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', mrf_fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='base', ctr=None, dan=None, **kwargs):
+                 fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='base', ctr=None, dan=None, **kwargs):
         """ axu: '321', '32', '21', '3', '2', '1' """
         super(RFUNet, self).__init__()
         self.ctr, self.dtype = ctr, dtype
@@ -40,11 +40,11 @@ class RFUNet(nn.Module):
         self.d_layer3 = copy.deepcopy(self.layer3)
         self.d_layer4 = copy.deepcopy(self.layer4)
 
-        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
-        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
-        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
-        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
-        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, fuse_type=fuse_type, **self.mmf_args)
+        self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, **self.mmf_args)
+        self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, **self.mmf_args)
+        self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, **self.mmf_args)
+        self.fuse3 = Fuse_Block(256, shape=(30, 30), mmf_att=mmf_att, **self.mmf_args)
+        self.fuse4 = Fuse_Block(512, shape=(15, 15), mmf_att=mmf_att, **self.mmf_args)
 
         if self.ctr=='apn':
             apn_args = {'in_channels':512, 'out_channels':512, 'key_channels':256, 'value_channels':256, 'dropout':0.05,
@@ -52,7 +52,7 @@ class RFUNet(nn.Module):
             print('settings for APNB is {}'.format(apn_args))
             self.ctr_blk = APNB(**apn_args)
 
-        d_args = {'dtype': dtype, 'aux': aux, 'auxl': auxl, 'feat': 'l', 'fuse_type': mrf_fuse_type, 'mrfs': mrfs, 'dan': dan}
+        d_args = {'dtype': dtype, 'aux': aux, 'auxl': auxl, 'feat': 'l', 'mrfs': mrfs, 'dan': dan}
         print('decoder setting {}'.format(d_args))
         self.decoder = Decoder(n_classes, **d_args)
 
@@ -90,6 +90,6 @@ def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1,
                fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, auxl='a', **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
-                   fuse_type=fuse_type, mrf_fuse_type=mrf_fuse_type, mmfs=mmfs, mrfs=mrfs, auxl=auxl, **kwargs)
+                   fuse_type=fuse_type, mmfs=mmfs, mrfs=mrfs, auxl=auxl, **kwargs)
     return model
 

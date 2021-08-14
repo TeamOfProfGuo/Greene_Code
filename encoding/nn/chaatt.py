@@ -4,8 +4,8 @@ import numpy as np
 import torch.nn as nn
 from functools import reduce
 from torch.nn import functional as F
-from torch.nn import Module, Softmax, Parameter
-from .center import PyramidPooling
+from ..utils import parse_setting
+
 __all__ = ['AttGate1', 'AttGate2', 'AttGate2a', 'AttGate2b', 'AttGate2d', 'AttGate2e', 'AttGate3', 'AttGate3a', 'AttGate3b', 'AttGate4c',
            'AttGate5c', 'AttGate6', 'AttGate9', 'PSK']
 
@@ -660,37 +660,20 @@ class GCGF_Block(nn.Module):
         return self.merge(x, y)
 
 
-s = 'pp_layer-4&descriptor-8&midf-16'
-def parse_setting(s):
-    def parse_kv(e):
-        k, v = e.split('-')
-        if v.isdigit():
-            v = int(v)
-        elif v in ['True', 'False']:
-            v = bool(v)
-        return k, v
-
-    if s=='' or s is None:
-        return {}
-    s_list = s.split('&')
-    s_dict = dict([ tuple(parse_kv(e)) for e in s_list ])
-    return s_dict
-
-
 class GCGF_Module(nn.Module):
-    def __init__(self, in_ch, shape=None, att='idt', gcfuse=None, gcatt=None):
+    def __init__(self, in_ch, shape=None, att='idt', gcf=None, gca=None):
         super().__init__()
         module_dict = {
             'se': AttGate1,
             'pdl': PDL_Block
         }
-        gcfuse = parse_setting(gcfuse)
-        gcatt = parse_setting(gcatt)
+        gcf = parse_setting(gcf, sep_out='&', sep_in='-')
+        gca= parse_setting(gca)
         self.pre_att = att
         if self.pre_att is not 'idt':
-            self.pre1 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gcatt)
-            self.pre2 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gcatt)
-        self.gcgf = GCGF_Block(in_ch, **gcfuse)
+            self.pre1 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gca)
+            self.pre2 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gca)
+        self.gcgf = GCGF_Block(in_ch, **gcf)
 
     def forward(self, x, y):
         if self.pre_att != 'idt':

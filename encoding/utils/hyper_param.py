@@ -8,6 +8,7 @@ module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':
                '7':'PA0|act_fn=sigmoid', '8':'PA0|act_fn=tanh', # PA0的其他参数已经写到模块里了
                '9':'CA3', 'a':'PA2|act_fn=sigmoid', 'b':'PA2|act_fn=tanh',
                'c': 'PA3a|act_fn=sigmoid', 'd': 'PA3a|act_fn=tanh',
+               'e': 'GF|att=pdl|gcf=merge-gc', 'f': 'GF1|att=pdl|gcf=merge-gc',   # 备注 gca=None
                '0':None, None:None
                }
 # 第三位【2】
