@@ -70,8 +70,9 @@ def get_proc(proc, in_ch):
 class Level_Fuse(nn.Module):
     def __init__(self, in_ch, shape=None, pre=(False, False), lfb='rbb[2->2]', mrf_att=None, **kwargs):
         super().__init__()
-        if mrf_att == 'GF1':
-            mrf_att, pre = 'GF', (True, False)
+        self.mrf_att = mrf_att
+        if self.mrf_att == 'GF1':
+            self.mrf_att, pre = 'GF', (True, False)
         self.pre_flag = pre
         self.fuse = Module_Dict[mrf_att](in_ch, shape=shape, **kwargs)
         self.rfb0 = customized_module(lfb, in_ch) if self.pre_flag[0] else nn.Identity()
@@ -79,5 +80,8 @@ class Level_Fuse(nn.Module):
 
     def forward(self, y, x):
         x = self.rfb0(x)  # Refine feats from backbone
-        out = self.fuse(y, x)
+        if self.mrf_att is not None:
+            out = self.fuse(y, x)
+        else:
+            out = y+x
         return self.rfb1(out)
