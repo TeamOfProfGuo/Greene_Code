@@ -75,7 +75,7 @@ class Level_Fuse(nn.Module):
             self.mrf_att, pre = 'GF', (True, False)
         self.pre_flag = pre
         if self.mrf_att is not None:
-            self.fuse = Module_Dict[mrf_att](in_ch, shape=shape, **kwargs)
+            self.fuse = Module_Dict[self.mrf_att](in_ch, shape=shape, **kwargs)
         self.rfb0 = customized_module(lfb, in_ch) if self.pre_flag[0] else nn.Identity()
         self.rfb1 = customized_module(lfb, in_ch) if self.pre_flag[1] else nn.Identity()
 
