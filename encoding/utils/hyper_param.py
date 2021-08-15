@@ -1,6 +1,6 @@
 # encoding:utf-8
 
-__all__ = ['get_model_args']
+__all__ = ['get_model_args', 'split_train_args', 'get_train_args']
 
 # 第一位 与 第二位
 module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':'CA2a|act_fn=softmax',
@@ -29,6 +29,8 @@ def get_args(s, i):
 
 
 def get_model_args(exp_args):
+    if '_' in exp_args:
+        exp_args = exp_args.split('_')[0]
     mmf_args = module_dict[get_args(exp_args,0)]
     mmfs = 'mmf=' + mmf_args if mmf_args is not None else None
 
@@ -41,5 +43,27 @@ def get_model_args(exp_args):
 
     model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr, dan=dan, aux=aux)
     return model_args
+
+
+def split_train_args(exp_args):
+    if '_' in exp_args:
+        train_args = exp_args.split('_')[1]
+    else:
+        train_args = None
+    return train_args
+
+
+scheduler_dict = {None: 'poly', 'p': 'poly', 'c': 'cos', 's':'step'}
+lr_dict = {None: None, '1': 0.001, '2': 0.002, '3':0.003, '5':0.005 }
+aux_weight_dict = {None: None, '1':0.1, '2':0.2, '3': 0.3, '5':0.5}
+
+
+def get_train_args(train_args):
+    scheduler = scheduler_dict[get_args(train_args, 0)]
+    lr = lr_dict[get_args(train_args, 1)]
+    aux_weight = aux_weight_dict[get_args(train_args, 2)]
+
+    train_args = dict(lr_scheduler = scheduler, lr =lr, aux_weight=aux_weight)
+    return train_args
 
 

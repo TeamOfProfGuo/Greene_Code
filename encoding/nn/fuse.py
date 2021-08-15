@@ -79,7 +79,7 @@ class Level_Fuse(nn.Module):
         self.rfb0 = customized_module(lfb, in_ch) if self.pre_flag[0] else nn.Identity()
         self.rfb1 = customized_module(lfb, in_ch) if self.pre_flag[1] else nn.Identity()
 
-    def forward(self, y, x):
+    def forward(self, y, x):  # y 深层网路， x 浅层网络
         x = self.rfb0(x)  # Refine feats from backbone
         if self.mrf_att is not None:
             out = self.fuse(y, x)
