@@ -1,7 +1,17 @@
-00 30 40 50 60 90
-5e 5f 6e 6f 9e 9f
-加aux: 5e009 5f009 6e009 6f009 9e009 9f009
-加center piece: 5e1 5f1 6e1 6f1 9e1 9f1
+
+base:            00  5e 5f 6e 6f
+
+aux_loss:        5e009 5f009 6e009 6f009
+aux_loss + apn:  5e109 5f109 6e109 6f109
+aux_loss + dan:  5e019 5f019 6e019 6f019
+aux+aux_weight:  5e009_p5a 5f009_p5a 6e009_p5a 6f009_p5a
+
+
+Learning Rate
+LR:              00_p2  5e_p2 5f_p2 6e_p2 6f_p2     #Note： train超参顺序为： Scheduler + LR + AuxWeight
+aux_loss:        5e009_p2 5f009_p2 6e009_p2 6f009_p2
+aux+aux_weight:  5e009_p2a 5f009_p2a 6e009_p2a 6f009_p2a
+
 
 
 

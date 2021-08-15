@@ -53,9 +53,9 @@ def split_train_args(exp_args):
     return train_args
 
 
-scheduler_dict = {None: 'poly', 'p': 'poly', 'c': 'cos', 's':'step'}
-lr_dict = {None: None, '1': 0.001, '2': 0.002, '3':0.003, '5':0.005 }
-aux_weight_dict = {None: None, '1':0.1, '2':0.2, '3': 0.3, '5':0.5}
+scheduler_dict = {None: None, 'p': 'poly', 'c': 'cos', 's':'step'}
+lr_dict = {None: None, '0':None, '1': 0.001, '2': 0.002, '3':0.003, '5':0.005 }
+aux_weight_dict = {None: None, '2':0.2, '3': 0.3, '5':0.5, 'a':1.0, 'b':2.0}
 
 
 def get_train_args(train_args):
