@@ -1,0 +1,29 @@
+# 测试 g h i (act_fn=sig):  g的效果没有h,i的好
+       'f': 'GF1|att=pdl|gcf=merge-gc'
+
+base:            00
+                 g0 h0 i0
+                 gf hf if
+                 ge he ie
+
+
+aux_loss:        gf009 hf009 if009
+                 ge009 he009 ie009
+
+################
+
+#Note： train超参顺序为： Scheduler + LR + AuxWeight
+
+hf009_p35 hf009_p38 hf009_p3a hf009_p3b hf009_p3d
+if009_p35 if009_p38 if009_p3a if009_p3b if009_p3d
+hf009_p55 hf009_p58 hf009_p5a hf009_p5b hf009_p5d
+hf009_p15 hf009_p18 hf009_p1a hf009_p1b hf009_p1d
+
+
+
+
+
+
+
+
+

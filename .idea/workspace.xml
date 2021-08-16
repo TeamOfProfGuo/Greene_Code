@@ -20,7 +20,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e454457a-9806-4f5c-8d06-8bcd1de6e490" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/encoding/nn/chaatt.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/chaatt.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/experiments/irb_psk_pdl_1/results/config.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/experiments/irb_psk_pdl_1/setting.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/experiments/irb_psk_pdl_1/train.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/experiments/irb_psk_pdl_1/train.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/experiments/irb_psk_pdl_1/train_check.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/encoding/utils/hyper_param.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/utils/hyper_param.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiments/irb_psk_pdl/setting.txt" beforeDir="false" afterPath="$PROJECT_DIR$/experiments/irb_psk_pdl/setting.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,6 +51,12 @@
   </component>
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/experiments" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/experiments" />
+    </key>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -66,6 +79,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

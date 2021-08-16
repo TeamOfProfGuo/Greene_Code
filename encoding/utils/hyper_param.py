@@ -59,7 +59,7 @@ def split_train_args(exp_args):
 
 scheduler_dict = {None: None, 'p': 'poly', 'c': 'cos', 's':'step'}
 lr_dict = {None: None, '0':None, '1': 0.001, '2': 0.002, '3':0.003, '4':0.004, '5':0.005 }
-aux_weight_dict = {None: None, '2':0.2, '3': 0.3, '5':0.5, '8': 0.8, 'a':1.0, 'b':1.2, 'c':1.5}
+aux_weight_dict = {None: None, '2':0.2, '3': 0.3, '5':0.5, '8': 0.8, 'a':1.0, 'b':1.2, 'c':1.5, 'd': 2}
 
 
 def get_train_args(train_args):

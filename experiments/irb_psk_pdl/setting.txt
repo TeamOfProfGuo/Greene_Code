@@ -1,6 +1,6 @@
 # 测试 g h i (act_fn=sig) j k l (act_fn=softmax) Decoder: 'f': 'GF1|att=pdl|gcf=merge-gc'
 
-base:            00
+base:            00 50 60
                  g0 h0 i0
                  gf hf if
                  ge he ie
@@ -10,19 +10,18 @@ aux_loss:        gf009 hf009 if009
                  ge009 he009 ie009
                  jf009 kf009 lf009
 
+                 5f009 6f009
+
+                 gf109 hf109 if109
+                 gf019 hf019 if019
+
 ################
 aux_loss + apn:
 aux_loss + dan:
 
 #Note： train超参顺序为： Scheduler + LR + AuxWeight
 
-LR+aux_weight:  5f009_p58 5f009_p5a 5f009_p5b 5f009_p5c 5e009_p5a
-                5f009_p48 5f009_p4a 5f009_p4b 5f009_p4c 5e009_p4a
-                5f009_p38 5f009_p3a 5f009_p3b 5f009_p3c 5e009_p3a
-
-
-                5f009_c58 5f009_c5a 5f009_c5b 5f009_c5c
-                5f009_c38 5f009_c3a 5f009_c3b 5f009_c3c
+LR+aux_weight:  5f009_p58
 
 
 
