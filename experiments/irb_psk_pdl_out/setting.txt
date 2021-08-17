@@ -5,18 +5,17 @@ base:            00
                  h0 i0
                  hf if
                  he ie
+                 hf000g hf000h
+                 he000g he000h
+                 hf009g hf009h
+                 he009g he009h
 
 
-aux_loss:        hf009 if009
-                 he009 ie009
+aux_loss:
 
 ################
 
 #Note： train超参顺序为： Scheduler + LR + AuxWeight
-
-hf009_p35 hf009_p38 hf009_p3a hf009_p3b hf009_p3c
-hf009_p55 hf009_p58 hf009_p5a hf009_p5b hf009_p5c
-hf009_p25 hf009_p28 hf009_p2a hf009_p2b hf009_p2c
 
 
 

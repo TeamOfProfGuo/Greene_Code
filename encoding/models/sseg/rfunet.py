@@ -16,7 +16,7 @@ __all__ = ['RFUNet', 'get_rfunet']
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='base', ctr=None, dan=None, **kwargs):
+                 fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='base', ctr=None, dan=None, out=None, **kwargs):
         """ axu: '321', '32', '21', '3', '2', '1' """
         super(RFUNet, self).__init__()
         self.ctr, self.dtype = ctr, dtype
@@ -72,7 +72,7 @@ class RFUNet(nn.Module):
             print('settings for APNB is {}'.format(apn_args))
             self.ctr_blk = APNB(**apn_args)
 
-        d_args = {'dtype': dtype, 'aux': aux, 'auxl': auxl, 'feat': 'l', 'mrfs': mrfs, 'dan': dan}
+        d_args = {'dtype': dtype, 'aux': aux, 'auxl': auxl, 'feat': 'l', 'mrfs': mrfs, 'dan': dan, 'out':out}
         print('decoder setting {}'.format(d_args))
         self.decoder = Decoder(n_classes, **d_args)
 

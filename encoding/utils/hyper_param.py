@@ -25,6 +25,9 @@ dan_dict = {'0':None, None:None, '1':'21af', '2': '321af', '3': 'aaf'}  # 321af:
 aux_dict = {'0':None, None:None, '1':'1', '2':'2', '3':'3', '4':'4', '5':'32', '6':'21', '7':'43', '8':'321', '9':'432'
             }
 
+# 第六位 【5】
+out_dict = {'0':None, None:None, 'g':'g', 'h':'g2'}
+
 def get_args(s, i):
     try:
         return s[i]
@@ -44,8 +47,9 @@ def get_model_args(exp_args):
     ctr = center_dict[get_args(exp_args, 2)]
     dan = dan_dict[get_args(exp_args, 3)]
     aux = aux_dict[get_args(exp_args, 4)]
+    out = out_dict[get_args(exp_args, 5)]
 
-    model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr, dan=dan, aux=aux)
+    model_args = dict(mmfs=mmfs, mrfs=mrfs, ctr=ctr, dan=dan, aux=aux, out=out)
     return model_args
 
 

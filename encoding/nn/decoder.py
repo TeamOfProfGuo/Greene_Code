@@ -35,29 +35,14 @@ class Res_Up_Block(nn.Module):
         return out, feat1
 
 
-class IRB_Up_Block(nn.Module):
-    def __init__(self, in_feats):
-        super().__init__()
-
-        self.conv_unit = nn.Sequential(
-            IRB_Block(2*in_feats, 2*in_feats),
-            IRB_Block(2*in_feats, 2*in_feats),
-            IRB_Block(2*in_feats, in_feats)
-        )
-        self.up_unit = LearnedUpUnit(in_feats)
-
-    def forward(self, x):
-        feats = self.conv_unit(x)
-        return self.up_unit(feats), feats
-
-
 class IRB_Decoder(nn.Module):
-    def __init__(self, n_classes, feat='l', mrfs = None, aux=None, auxl = None, dan=None):
+    def __init__(self, n_classes, feat='l', mrfs = None, aux=None, auxl = None, dan=None, out=None):
         super().__init__()
 
         self.aux = aux
         self.feat = feat
         self.dan = dan
+        self.out = out
         self.mrf_args = parse_setting(mrfs)
         mrf_att = self.mrf_args.pop('mrf', None)
 
@@ -81,11 +66,18 @@ class IRB_Decoder(nn.Module):
                 self.add_module('aux'+str(i),
                                 nn.Conv2d(decode_feat[int(i)]//2, n_classes, kernel_size=1, stride=1, padding=0, bias=True))
 
-        self.out_conv = nn.Sequential(
-            nn.Conv2d(decode_feat[1], n_classes, kernel_size=1, stride=1, padding=0, bias=True),
-            LearnedUpUnit(n_classes),
-            LearnedUpUnit(n_classes)
-        )
+        if self.out is None or self.out=='c':
+            self.out_conv = nn.Sequential(
+                nn.Conv2d(decode_feat[1], n_classes, kernel_size=1, stride=1, padding=0, bias=True),
+                LearnedUpUnit(n_classes),
+                LearnedUpUnit(n_classes))
+        elif self.out in ['g2', 'g']:
+            d = 2 if self.out=='g2' else 1
+            fcn_head = FCNHead(decode_feat[1], n_classes, with_global=True, d=d)
+            self.out_conv = nn.Sequential(
+                fcn_head,
+                LearnedUpUnit(n_classes),
+                LearnedUpUnit(n_classes))
 
         if self.dan in ['21af']:
             afn_args = dict(low_in_channels=decode_feat[2], high_in_channels=decode_feat[1], out_channels=decode_feat[1],
@@ -204,3 +196,19 @@ class Base_Decoder(nn.Module):
                 outputs.append(aux_out)
         return outputs
 
+
+
+class IRB_Up_Block(nn.Module):
+    def __init__(self, in_feats):
+        super().__init__()
+
+        self.conv_unit = nn.Sequential(
+            IRB_Block(2*in_feats, 2*in_feats),
+            IRB_Block(2*in_feats, 2*in_feats),
+            IRB_Block(2*in_feats, in_feats)
+        )
+        self.up_unit = LearnedUpUnit(in_feats)
+
+    def forward(self, x):
+        feats = self.conv_unit(x)
+        return self.up_unit(feats), feats

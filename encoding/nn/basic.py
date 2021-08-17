@@ -219,9 +219,9 @@ class ConcurrentModule(nn.ModuleList):
 
 
 class FCNHead(nn.Module):
-    def __init__(self, in_channels, out_channels, norm_layer=nn.BatchNorm2d, up_kwargs={'mode': 'bilinear', 'align_corners': True}, with_global=False):
+    def __init__(self, in_channels, out_channels, norm_layer=nn.BatchNorm2d, up_kwargs={'mode': 'bilinear', 'align_corners': True}, with_global=False, d=2):
         super(FCNHead, self).__init__()
-        inter_channels = in_channels // 4
+        inter_channels = in_channels // d
         self._up_kwargs = up_kwargs
         if with_global:
             self.conv5 = nn.Sequential(nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
