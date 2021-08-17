@@ -1,14 +1,11 @@
 # 测试 g h i (act_fn=sig):  g的效果没有h,i的好
        'f': 'GF1|att=pdl|gcf=merge-gc'
 
-base:            00
-                 h0 i0
-                 hf if
-                 he ie
+base:            00   00000g  00000h
+                 h0   h0000g  h0000h
+
                  hf000g hf000h
-                 he000g he000h
                  hf009g hf009h
-                 he009g he009h
 
 
 aux_loss:

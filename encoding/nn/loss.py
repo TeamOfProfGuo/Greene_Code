@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.autograd import Variable
 
-__all__ = ['LabelSmoothing', 'NLLMultiLabelSmooth', 'SegmentationLosses']
+__all__ = ['LabelSmoothing', 'NLLMultiLabelSmooth', 'SegmentationLosses', 'SegmentationAuxLosses']
 
 class LabelSmoothing(nn.Module):
     """
@@ -53,15 +53,16 @@ class NLLMultiLabelSmooth(nn.Module):
 class SegmentationLosses(nn.CrossEntropyLoss):
     """2D Cross Entropy Loss with Auxilary Loss"""
     def __init__(self, se_loss=False, se_weight=0.2, nclass=-1,
-                 aux=None, aux_weight=0.4, weight=None,
-                 ignore_index=-1):
+                 aux=None, aux_weight=0.4, weight=None, ignore_index=-1, type=None):
         super(SegmentationLosses, self).__init__(weight, None, ignore_index)
         self.se_loss = se_loss
         self.aux = aux
+        self.type = type
         self.nclass = nclass
         self.se_weight = se_weight
         self.aux_weight = aux_weight
-        self.bceloss = nn.BCELoss(weight) 
+        self.bceloss = nn.BCELoss(weight)
+        self.ceploss = nn.CrossEntropyLoss(ignore_index=-1)
 
     def forward(self, *inputs):
         if not self.se_loss and not self.aux:
@@ -75,7 +76,10 @@ class SegmentationLosses(nn.CrossEntropyLoss):
                 aux_feat = inputs[i]
                 _, _, h, w = aux_feat.size()
                 aux_target = F.interpolate(target.unsqueeze(1).float(), size=(h, w)).long().squeeze(1)
-                aux_loss.append( super(SegmentationLosses, self).forward(aux_feat, aux_target) )
+                if self.type is None:
+                    aux_loss.append( super(SegmentationLosses, self).forward(aux_feat, aux_target) )
+                elif self.type == 's':
+                    aux_loss.append( self.ceploss(aux_feat, aux_target) )
             loss2 = sum(aux_loss)/len(aux_loss)
             return loss1 + loss2*self.aux_weight
 
@@ -105,3 +109,23 @@ class SegmentationLosses(nn.CrossEntropyLoss):
             vect = hist>0
             tvect[i] = vect
         return tvect
+
+
+class SegmentationAuxLosses(nn.CrossEntropyLoss):
+    """2D Cross Entropy Loss with Auxilary Loss"""
+    def __init__(self, nclass=-1, aux_weight=0.4, weight=None, ignore_index=-1):
+        super(SegmentationAuxLosses, self).__init__(weight, None, ignore_index)
+        self.nclass = nclass
+        self.aux_weight = aux_weight
+        self.bceloss = nn.BCELoss(weight)
+
+    def forward(self, *inputs):
+        target = inputs[-1]
+        aux_loss = []
+        for i in range(1, len(self.aux)+1):
+            aux_feat = inputs[i]
+            _, _, h, w = aux_feat.size()
+            aux_target = F.interpolate(target.unsqueeze(1).float(), size=(h, w)).long().squeeze(1)
+            aux_loss.append( super(SegmentationLosses, self).forward(aux_feat, aux_target) )
+        loss2 = sum(aux_loss)/len(aux_loss)
+        return loss2*self.aux_weight
