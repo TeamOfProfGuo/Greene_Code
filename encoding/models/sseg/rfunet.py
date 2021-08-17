@@ -40,6 +40,26 @@ class RFUNet(nn.Module):
         self.d_layer3 = copy.deepcopy(self.layer3)
         self.d_layer4 = copy.deepcopy(self.layer4)
 
+        if backbone == 'res18c':
+            self.layer0 = nn.Sequential(nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1, bias=False),
+                                        nn.BatchNorm2d(32),
+                                        nn.ReLU(inplace=True),
+                                        nn.Conv2d(32, 32, kernel_size=1, bias=True),
+                                        nn.BatchNorm2d(32),
+                                        nn.ReLU(inplace=True),
+                                        nn.Conv2d(32, 64, kernel_size=1, bias=True),
+                                        nn.BatchNorm2d(64),
+                                        nn.ReLU(inplace=True))
+            self.d_layer0 = nn.Sequential(nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1, bias=False),
+                                        nn.BatchNorm2d(32),
+                                        nn.ReLU(inplace=True),
+                                        nn.Conv2d(32, 32, kernel_size=1, bias=True),
+                                        nn.BatchNorm2d(32),
+                                        nn.ReLU(inplace=True),
+                                        nn.Conv2d(32, 64, kernel_size=1, bias=True),
+                                        nn.BatchNorm2d(64),
+                                        nn.ReLU(inplace=True))
+
         self.fuse0 = Fuse_Block(64, shape=(240, 240), mmf_att=mmf_att, **self.mmf_args)
         self.fuse1 = Fuse_Block(64, shape=(120, 120), mmf_att=mmf_att, **self.mmf_args)
         self.fuse2 = Fuse_Block(128, shape=(60, 60), mmf_att=mmf_att, **self.mmf_args)
