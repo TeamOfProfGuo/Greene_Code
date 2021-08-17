@@ -88,16 +88,18 @@ class Trainer():
                                          lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
         # criterions
+        type = None
         if train_args['class_weight'] is not None:
             import pickle
             fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
             with open(os.path.join(BASE_DIR, '../dataset/NYUD_v2/weight', fname), 'rb') as handle:
                 wt = pickle.load(handle)
             class_wt = torch.FloatTensor(wt).to(self.device)
+            if len(train_args['class_weight'])==2:
+                type='s'
         else:
             class_wt = None
 
-        type = None if len(train_args['class_weight'])==1 else 's'
         self.criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
                                             nclass=self.nclass, weight=class_wt,
                                             aux_weight=args.aux_weight, type=type)
