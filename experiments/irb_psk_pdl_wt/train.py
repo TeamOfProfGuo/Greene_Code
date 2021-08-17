@@ -66,32 +66,6 @@ class Trainer():
                                        root='../../encoding/models/pretrain', dtype=args.dtype,
                                        **model_kwargs)
         print(model)
-        # optimizer using different LR
-        base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
-        base_ids = utils.get_param_ids(base_modules)
-        base_params = filter(lambda p: id(p) in base_ids, model.parameters())
-        other_params = filter(lambda p: id(p) not in base_ids, model.parameters())
-        self.optimizer = torch.optim.SGD([{'params': base_params, 'lr': args.lr},
-                                          {'params': other_params, 'lr': args.lr * 10}],
-                                         lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-
-        # criterions
-        import pickle
-        fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
-        with open(os.path.join(BASE_DIR, '../dataset/NYUD_v2/weight', fname), 'rb') as handle:
-            wt = pickle.load(handle)
-        class_wt = torch.FloatTensor(wt).to(self.device)
-
-        type = None if len(train_args['class_weight'])==1 else 's'
-        self.criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
-                                            nclass=self.nclass, weight=class_wt,
-                                            aux_weight=args.aux_weight, type=type)
-
-
-        # lr scheduler
-        self.scheduler = utils.LR_Scheduler_Head(args.lr_scheduler, args.lr, args.epochs,
-                                                 iters_per_epoch=len(self.trainloader), warmup_epochs=5)
-        self.best_pred = 0.0
 
         # using cuda
         self.device = torch.device("cuda:0" if args.cuda else "cpu")
@@ -103,6 +77,36 @@ class Trainer():
             else:
                 self.multi_gpu = False
         self.model = model.to(self.device)
+
+        # optimizer using different LR
+        base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
+        base_ids = utils.get_param_ids(base_modules)
+        base_params = filter(lambda p: id(p) in base_ids, model.parameters())
+        other_params = filter(lambda p: id(p) not in base_ids, model.parameters())
+        self.optimizer = torch.optim.SGD([{'params': base_params, 'lr': args.lr},
+                                          {'params': other_params, 'lr': args.lr * 10}],
+                                         lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+
+        # criterions
+        if train_args['class_weight'] is not None:
+            import pickle
+            fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
+            with open(os.path.join(BASE_DIR, '../dataset/NYUD_v2/weight', fname), 'rb') as handle:
+                wt = pickle.load(handle)
+            class_wt = torch.FloatTensor(wt).to(self.device)
+        else:
+            class_wt = None
+
+        type = None if len(train_args['class_weight'])==1 else 's'
+        self.criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
+                                            nclass=self.nclass, weight=class_wt,
+                                            aux_weight=args.aux_weight, type=type)
+
+
+        # lr scheduler
+        self.scheduler = utils.LR_Scheduler_Head(args.lr_scheduler, args.lr, args.epochs,
+                                                 iters_per_epoch=len(self.trainloader), warmup_epochs=5)
+        self.best_pred = 0.0
 
         # for writing summary
         path = "/".join(("{}-{}".format(*i) for i in model_kwargs.items()))
