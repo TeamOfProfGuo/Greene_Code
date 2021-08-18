@@ -1,0 +1,26 @@
+# 测试 g(psk_a) h(psk_b) i(psk_c) (act_fn=sig)
+# 测试 Decoder: 'f': 'GF1|att=pdl|gcf=merge-gc'
+
+base:   00
+        30 40
+        50 60
+        g0 h0 i0
+
+        30_p5 40_p5
+        50_p5 60_p5
+        g0_p5 h0_p5 i0_p5
+
+
+################
+aux_loss + apn:
+aux_loss + dan:
+
+
+
+
+
+
+
+
+
+
