@@ -12,6 +12,7 @@ import h5py
 import numpy as np
 import scipy.io
 from tqdm import tqdm
+import cv2
 
 # see: http://rgbd.cs.princeton.edu/ in section Data and Annotation
 DATASET_URL = 'http://rgbd.cs.princeton.edu/data/SUNRGBD.zip'

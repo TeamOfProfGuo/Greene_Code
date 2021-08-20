@@ -74,6 +74,7 @@ class SUNRGBD(SUNRBDBase, BaseDataset):
         _img = self.load_image(idx)
         _dep = self.load_depth(idx)
         _target = self.load_target(idx)
+        # all three are Images
 
         # synchronized transform
         if self.mode == 'train':
@@ -85,6 +86,9 @@ class SUNRGBD(SUNRBDBase, BaseDataset):
             # _img: 3 channel image, pixel value 0~255,
             # _dep: 1 channel image, pixel value 1~65528,
             # _target: 1 channel tensor, pixel value 0~37
+
+        _dep = np.asarray(_dep, dtype=float)
+        _dep = Image.fromarray(_dep)
 
         # by default ignore class is -1
         _target -= 1
