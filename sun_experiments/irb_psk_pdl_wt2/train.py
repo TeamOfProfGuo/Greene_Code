@@ -92,7 +92,7 @@ class Trainer():
         if train_args['class_weight'] is not None:
             import pickle
             fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
-            with open(os.path.join(BASE_DIR, '../dataset/NYUD_v2/weight', fname), 'rb') as handle:
+            with open(os.path.join(BASE_DIR, '../dataset/sunrgbd/weight', fname), 'rb') as handle:
                 wt = pickle.load(handle)
             class_wt = torch.FloatTensor(wt).to(self.device)
             if len(train_args['class_weight'])==2:

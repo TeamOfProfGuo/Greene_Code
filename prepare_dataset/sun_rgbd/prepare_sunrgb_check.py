@@ -7,6 +7,7 @@ import numpy as np
 import scipy.io
 from tqdm import tqdm
 import os
+import copy
 
 # argument parser
 output_path= '../dataset/sunrgbd'
@@ -29,10 +30,8 @@ label_dir_test = []
 SUNRGBD2Dseg = h5py.File(SUNRGBD2Dseg_dir, mode='r', libver='latest')
 
 # load the data from the matlab file
-SUNRGBDMeta = scipy.io.loadmat(SUNRGBDMeta_dir, squeeze_me=True,
-                               struct_as_record=False)['SUNRGBDMeta']
-split = scipy.io.loadmat(allsplit_dir, squeeze_me=True,
-                         struct_as_record=False)
+SUNRGBDMeta = scipy.io.loadmat(SUNRGBDMeta_dir, squeeze_me=True, struct_as_record=False)['SUNRGBDMeta']
+split = scipy.io.loadmat(allsplit_dir, squeeze_me=True, struct_as_record=False)
 split_train = split['alltrain']
 
 seglabel = SUNRGBD2Dseg['SUNRGBD2Dseg']['seglabel']
@@ -75,6 +74,61 @@ _write_list_to_file(label_dir_train, 'train_label.txt')
 _write_list_to_file(img_dir_test, 'test_rgb.txt')
 _write_list_to_file(depth_dir_test, 'test_depth.txt')
 _write_list_to_file(label_dir_test, 'test_label.txt')
+
+
+# 统计不同category样本分布是否均衡
+
+def get_label_cnts(split, dpath = '../dataset/sunrgbd'):
+    label_cnts = {}
+    label_dir = label_dir_train if split == 'train' else label_dir_test
+    for f in label_dir:
+        l = np.load(os.path.join(dpath, f)).astype(np.int8)
+        label, cnt = np.unique(l, return_counts=True)
+        for i, label_v in enumerate(label):
+            if label_v in label_cnts:
+                label_cnts[label_v] += cnt[i]
+            else:
+                label_cnts[label_v] = cnt[i]
+    return label_cnts
+
+
+# class cnts in train Test and Total
+train_label_cnts = get_label_cnts('train')
+
+test_label_cnts = get_label_cnts('test')
+
+total_label_cnts = train_label_cnts.copy()
+for k,v  in total_label_cnts.items():
+    total_label_cnts[k] = v+test_label_cnts[k]
+
+# Calculate the class weight
+class_cnt = [e[1] for e in sorted(train_label_cnts.items())]
+cnts = class_cnt[1:]
+s = np.sum(cnts)
+wt = (s-cnts)/s
+wt_2 = wt**2
+wt_3 = wt**3
+
+import pickle
+weight_path="../dataset/sunrgbd/weight/"
+with open(os.path.join(weight_path,'wt1.pickle'), 'wb') as handle:
+    pickle.dump(wt, handle)
+with open(os.path.join(weight_path,'wt2.pickle'), 'wb') as handle:
+    pickle.dump(wt_2, handle)
+with open(os.path.join(weight_path,'wt3.pickle'), 'wb') as handle:
+    pickle.dump(wt_3, handle)
+
+
+with open(os.path.join(weight_path,'wt3.pickle'), 'rb') as handle:
+    w3 = pickle.load(handle)
+
+
+
+
+
+
+
+
 
 
 
