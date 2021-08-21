@@ -210,6 +210,7 @@ class AttGate2b(nn.Module):
 class PSK(nn.Module):
     def __init__(self, in_ch, shape=None, dd=8, r=16, act_fn=None, pp=None):
         super().__init__()
+        self.pp = pp
         d = max(int(in_ch / r), 32)
         if pp is None or pp=='a':
             self.pp_size = (1, 3, 5)  # pp_size: pyramid layer num
