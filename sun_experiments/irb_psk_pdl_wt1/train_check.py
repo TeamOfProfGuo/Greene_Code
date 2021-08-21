@@ -5,7 +5,7 @@
 ###########################################################################
 
 import os, sys
-BASE_DIR = os.path.dirname(os.path.dirname(os.getcwd()))
+BASE_DIR = '/scratch/lg154/sseg/Greene_Code/'
 sys.path.append(BASE_DIR)
 import copy
 import yaml
@@ -28,7 +28,7 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = 'sun_experiments/irb_psk_pdl_wt1/results/config.yaml'
+CONFIG_PATH = '/scratch/lg154/sseg/Greene_Code/sun_experiments/irb_psk_pdl_wt1/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
@@ -69,10 +69,22 @@ valloader = data.DataLoader(testset, batch_size=args.batch_size, drop_last=False
 nclass = trainset.num_class
 
 # model
+root = '/scratch/lg154/sseg/Greene_Code/encoding/models/pretrain'
 model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True, dtype = args.dtype,
-                               root='./encoding/models/pretrain', **model_kwargs)
+                               root=root, **model_kwargs)
 
 print(model)
+
+
+# using cuda
+device = torch.device("cuda:0" if args.cuda else "cpu")
+if args.cuda:
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(),
+              "GPUs!")  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model, device_ids=GPUS)
+model = model.to(device)
+
 
 # optimizer using different LR
 base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
@@ -87,10 +99,10 @@ optimizer = torch.optim.SGD([{'params': base_params, 'lr': args.lr},
 
 import pickle
 fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
-with open(os.path.join(BASE_DIR, '../dataset/NYUD_v2/weight', fname), 'rb') as handle:
+with open(os.path.join('/scratch/lg154/sseg/dataset/NYUD_v2/weight', fname), 'rb') as handle:
     wt = pickle.load(handle)
 class_wt = torch.FloatTensor(wt)
-# class_wt = torch.FloatTensor(wt).to(self.device)
+# class_wt = torch.FloatTensor(wt).to(device)
 
 type = None if len(train_args['class_weight'])==1 else 's'
 criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
@@ -101,14 +113,6 @@ criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
 scheduler = utils.LR_Scheduler_Head(args.lr_scheduler, args.lr, args.epochs, len(trainloader), warmup_epochs=1)
 best_pred = 0.0
 
-# using cuda
-device = torch.device("cuda:0" if args.cuda else "cpu")
-if args.cuda:
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(),
-              "GPUs!")  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-        model = nn.DataParallel(model, device_ids=GPUS)
-model = model.to(device)
 
 
 
@@ -116,6 +120,8 @@ model = model.to(device)
 # ==================== train =====================
 train_loss = 0.0
 epoch = 1
+print(image)
+print(image)
 model.train()
 for i, (image, dep, target) in enumerate(trainloader):
     print('1 batch')
@@ -133,3 +139,55 @@ loss.backward()
 optimizer.step()
 
 train_loss += loss.item()
+
+print('------+++++++++')
+print(train_loss)
+
+
+
+
+
+
+
+data_dir = '/scratch/lg154/sseg/dataset/sunrgbd' 
+
+img_dir = ['SUNRGBD/kv2/kinect2data/000065_2014-05-16_20-14-38_260595134347_rgbf000121-resize/image/0000121.jpg',
+           'SUNRGBD/kv2/kinect2data/000066_2014-04-13_23-39-40_094959634447_rgbf000225-resize/image/0000225.jpg',
+           'SUNRGBD/kv2/kinect2data/000067_2014-04-13_23-40-52_094959634447_rgbf000225-resize/image/0000225.jpg', ]
+dep_dir = ['SUNRGBD/kv2/kinect2data/000065_2014-05-16_20-14-38_260595134347_rgbf000121-resize/depth_bfx/0000121.png',
+           'SUNRGBD/kv2/kinect2data/000066_2014-04-13_23-39-40_094959634447_rgbf000225-resize/depth_bfx/0000225.png',
+           'SUNRGBD/kv2/kinect2data/000067_2014-04-13_23-40-52_094959634447_rgbf000225-resize/depth_bfx/0000225.png', ]
+t_dir =  ['SUNRGBD/kv2/kinect2data/000065_2014-05-16_20-14-38_260595134347_rgbf000121-resize/label/label.npy',
+          'SUNRGBD/kv2/kinect2data/000066_2014-04-13_23-39-40_094959634447_rgbf000225-resize/label/label.npy',
+          'SUNRGBD/kv2/kinect2data/000067_2014-04-13_23-40-52_094959634447_rgbf000225-resize/label/label.npy', ]
+
+i = 0
+fpath = os.path.join(data_dir, img_dir[0])
+from matplotlib import pyplot as plt
+from PIL import Image
+image = Image.open(fpath)
+image.show()
+
+
+self = trainset
+idx = 0 
+_img = self.load_image(idx)
+_dep = self.load_depth(idx)
+_target = self.load_target(idx)
+
+# synchronized transform
+if self.mode == 'train':
+    # return _img (Image), _dep (Image), _target (2D tensor)
+    _img, _dep, _target = self._sync_transform(_img, _target, depth=_dep,
+                                                IGNORE_LABEL=0)  # depth need to modify
+
+_target -= 1
+
+# general resize, normalize and toTensor
+if self.transform is not None:
+    _img = self.transform(_img)  # _img to tensor, normalize
+if self.dep_transform is not None:
+    _dep = self.dep_transform(_dep)  # depth to tensor, normalize
+if self.target_transform is not None:
+    _target = self.target_transform(_target)
+return _img, _dep, _target  # all tensors
