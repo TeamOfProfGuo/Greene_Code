@@ -214,7 +214,7 @@ class PSK(nn.Module):
         if pp is None or pp=='a':
             self.pp_size = (1, 3, 5)  # pp_size: pyramid layer num
         elif pp == 'b':
-            self.pp_size = (1, 3, 5, 7)
+            self.pp_size = (1, 2, 4, 8)
         elif pp == 'c':
             self.pp_size = (1, 2, 4, 8)
 
@@ -240,12 +240,15 @@ class PSK(nn.Module):
             self.act = nn.Softmax(dim=1)
 
     def forward(self, x, y):
-        U = x + y
-        batch_size, ch, _, _ = U.size()
+        batch_size, ch, _, _ = x.size()
+        if self.pp =='b':
+            U = x + y
+        elif self.pp in ['c', 'a']:
+            U = x
 
         pooling_pyramid = []
         for s in self.pp_size:
-            pooling_pyramid.append(F.adaptive_avg_pool2d(x, s).view(batch_size, ch, 1, -1))  # [B, c, 1, s^2]
+            pooling_pyramid.append(F.adaptive_avg_pool2d(U, s).view(batch_size, ch, 1, -1))  # [B, c, 1, s^2]
         z = torch.cat(tuple(pooling_pyramid), dim=-1)    # [B, c, 1, f]
         z = z.reshape(batch_size * ch, -1, 1, 1)         # [bc, f, 1, 1]
         z = self.des(z).view(batch_size, ch * self.dd)   # [bc, dd, 1, 1] => [b, c*dd]

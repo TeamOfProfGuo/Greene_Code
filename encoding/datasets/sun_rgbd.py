@@ -87,8 +87,8 @@ class SUNRGBD(SUNRBDBase, BaseDataset):
             # _dep: 1 channel image, pixel value 1~65528,
             # _target: 1 channel tensor, pixel value 0~37
 
-        _dep = np.asarray(_dep, dtype=float)
-        _dep = Image.fromarray(_dep)
+        #_dep = np.asarray(_dep, dtype=float)
+        #_dep = Image.fromarray(_dep)
 
         # by default ignore class is -1
         _target -= 1
