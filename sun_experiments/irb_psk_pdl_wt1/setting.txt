@@ -3,7 +3,7 @@
 
 base:        00 i0  if
 
-aux_loss:    if009
+aux_loss:    if009 hf009
 
 #Note： train超参顺序为： Scheduler + LR + AuxWeight
 
