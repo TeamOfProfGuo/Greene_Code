@@ -46,9 +46,11 @@ class Trainer():
         input_transform = transform.Compose([
             transform.ToTensor(),  # convert RGB [0,255] to FloatTensor in range [0, 1]
             transform.Normalize([.485, .456, .406], [.229, .224, .225])])  # mean and std based on imageNet
+
         dep_transform = transform.Compose([
             transform.ToTensor(),
-            transform.Normalize(mean=[0.2798], std=[0.1387])  # mean and std for depth
+            transform.Lambda(lambda x: x.float()),
+            transform.Normalize(mean=[19025.15], std=[9880.92])  # mean and std for depth
         ])
         # dataset
         data_kwargs = {'transform': input_transform, 'dep_transform': dep_transform,
@@ -157,9 +159,9 @@ class Trainer():
             total_union += union
             train_loss += loss.item()
 
-            if (i+1) % 50 == 0:
-                print('epoch {}, step {}, loss {}'.format(epoch + 1, i + 1, train_loss / 50))
-                self.writer.add_scalar('train_loss', train_loss / 50, epoch * len(self.trainloader) + i)
+            if (i+1) % 100 == 0:
+                print('epoch {}, step {}, loss {}'.format(epoch + 1, i + 1, train_loss / 100))
+                self.writer.add_scalar('train_loss', train_loss / 100, epoch * len(self.trainloader) + i)
                 train_loss = 0.0
         pixAcc = 1.0 * total_correct / (np.spacing(1) + total_label)
         IOU = 1.0 * total_inter / (np.spacing(1) + total_union)
@@ -225,7 +227,7 @@ class Trainer():
             IOU = 1.0 * total_inter / (np.spacing(1) + total_union)
             mIOU = IOU.mean()
 
-            if i % 40 == 0:
+            if i % 100 == 0:
                 print('eval mean IOU {}'.format(mIOU))
             loss = total_loss / len(self.valloader)
 
