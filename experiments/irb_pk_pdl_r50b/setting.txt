@@ -1,0 +1,32 @@
+# 测试 g(psk_a) h(psk_b) i(psk_c) (act_fn=sig)
+# 测试 Decoder: 'f': 'GF1|att=pdl|gcf=merge-gc'
+
+base:        00 h0
+             hf
+
+aux_loss:    hf009
+
+#Note： train超参顺序为： Scheduler + LR + AuxWeight
+
+             hf009_p35 hf009_p38 hf009_p3a hf009_p3b
+
+             hf009_p351 hf009_p381 hf009_p3a1
+             if009_p352 if009_p382 if009_p3a2
+             if009_p353 if009_p383 if009_p3a3
+
+
+
+
+################
+aux_loss + apn:
+aux_loss + dan:
+
+
+
+
+
+
+
+
+
+
