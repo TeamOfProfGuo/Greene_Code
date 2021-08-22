@@ -4,7 +4,7 @@
 import os
 import torch
 import torch.nn as nn
-from ..backbone import get_resnet18
+from ..backbone import get_backbone
 import torch.nn.functional as F
 from torch.nn import BatchNorm2d
 from ...nn import ConvBNReLU, SpatialPath_drn
@@ -73,7 +73,7 @@ class AttentionRefinementModule(nn.Module):
 class ContextPath(nn.Module):
     def __init__(self, root='./encoding/models/pretrain', *args, **kwargs):
         super(ContextPath, self).__init__()
-        self.resnet = get_resnet18(input_dim=3, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
+        self.resnet = get_backbone(input_dim=3, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
         self.arm16 = AttentionRefinementModule(256, 128)
         self.arm32 = AttentionRefinementModule(512, 128)
         self.conv_head32 = ConvBNReLU(128, 128, ks=3, stride=1, padding=1)

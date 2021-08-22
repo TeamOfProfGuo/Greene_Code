@@ -2,29 +2,34 @@ import os
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from .resnetc import resnet50
 
-__all__ = ['get_resnet18']
+__all__ = ['get_backbone']
 
 
-def get_resnet18(pretrained=True, input_dim=3, dilation=1,
-                 f_path='./../../encoding/models/pretrain/resnet18-5c106cde.pth'):
+def get_backbone(backbone='resnet18', input_dim=3, pretrained=True, root='../../encoding/models/pretrain'):
     assert input_dim in (1, 3, 4)
-    if dilation == 1:
+
+    if backbone == 'resnet18':
         model = models.resnet18(pretrained=False)
-    elif dilation > 1:
-        model = dilated_resnet18(dilation=dilation)
+        fname = 'resnet18-5c106cde.pth'
+    elif backbone == 'resnet50':
+        model = models.resnet50(pretrained=False)
+        fname = 'resnet50-19c8e357.pth'
+    elif backbone == 'resnet50c':
+        model = resnet50(pretrained=False)
+        fname = 'resnet50_v2.pth'
 
+    f_path = os.path.join(root, fname)
     if pretrained:
-        # Check weights file
         if not os.path.exists(f_path):
-            raise FileNotFoundError('The pretrained model cannot be found.')
+            raise FileNotFoundError('The pretrained model {} cannot be found'.format(f_path))
         model.load_state_dict(torch.load(f_path), strict=False)
+    if input_dim != 3:
+        model.conv1 = nn.Conv2d(input_dim, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
-        if input_dim != 3:
-            model.conv1 = nn.Conv2d(input_dim, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    else:
-        raise ValueError('Please use pretrained resnet18.')
     return model
+
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):

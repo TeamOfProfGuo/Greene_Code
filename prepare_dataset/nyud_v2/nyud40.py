@@ -33,6 +33,30 @@ class_cnt1 = pd.Series(class_cnt,index=class_cnt.keys())
 
 
 
+unique, counts = np.unique(labels, return_counts=True)
+class_cnt = dict(zip(unique, counts))
+class_cnt1 = pd.Series(class_cnt,index=class_cnt.keys())
+
+cnts = counts[1:]
+s = np.sum(cnts)
+wt = (s-cnts)/s
+wt_2 = wt**2
+wt_3 = wt**3
+
+import pickle
+weight_path="../dataset/NYUD_v2/weight/"
+with open(os.path.join(weight_path,'wt1.pickle'), 'wb') as handle:
+    pickle.dump(wt, handle)
+with open(os.path.join(weight_path,'wt2.pickle'), 'wb') as handle:
+    pickle.dump(wt_2, handle)
+with open(os.path.join(weight_path,'wt3.pickle'), 'wb') as handle:
+    pickle.dump(wt_3, handle)
+
+
+
+
+
+
 # to check the labels for one image (left right flipped)
 label0 = labels[:, :, 0]
 label_img = Image.fromarray(np.uint8(label0))

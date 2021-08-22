@@ -9,7 +9,7 @@ from addict import Dict
 import torch.nn.functional as F
 from ...nn import Fuse_Block, FCNHead
 from ...nn import Decoder
-from ..backbone import get_resnet18
+from ..backbone import get_backbone
 from ...utils import parse_setting
 
 # RFUNet: Res Fuse U-Net
@@ -26,7 +26,7 @@ class ACNet(nn.Module):
         mmf_att = self.mmf_args.pop('mmf', None)
         print('++++++mmf:{}, mmf_args:{}+++++++'.format(mmf_att, self.mmf_args))
 
-        self.base = get_resnet18(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
+        self.base = get_backbone(input_dim=3, dilation=dilation, f_path=os.path.join(root, 'resnet18-5c106cde.pth'))
 
         self.layer0 = nn.Sequential(self.base.conv1, self.base.bn1, self.base.relu)  # [B, 64, h/2, w/2]
         self.layer1 = nn.Sequential(self.base.maxpool, self.base.layer1) # [B, 64, h/4, w/4]

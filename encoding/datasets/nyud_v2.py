@@ -1,5 +1,7 @@
 import os
 import scipy.io
+import pickle
+import numpy as np
 from PIL import Image
 
 from .base import BaseDataset
@@ -14,9 +16,9 @@ class NYUD(BaseDataset):
     NUM_CLASS = 40
     CWD = os.getcwd()
     if os.path.dirname(CWD).endswith('experiments'):
-        TRAIN_BASE_DIR = '../../../dataset/NYUD_v2'
+        BASE_DIR = '../../../dataset/NYUD_v2'
     else:
-        TRAIN_BASE_DIR = '../dataset/NYUD_v2/'
+        BASE_DIR = '../dataset/NYUD_v2/'
 
     def __init__(self, root=os.path.expanduser('~/.encoding/data'), split='train',
                  mode=None, transform=None, dep_transform=None, target_transform=None, **kwargs):
@@ -25,7 +27,7 @@ class NYUD(BaseDataset):
         super(NYUD, self).__init__(root, split, mode, transform, target_transform, **kwargs)
 
         # train/val/test splits are pre-cut
-        _nyu_root = os.path.abspath(self.TRAIN_BASE_DIR)
+        _nyu_root = os.path.abspath(self.BASE_DIR)
         _mask_dir = os.path.join(_nyu_root, 'nyu_labels40')
         _image_dir = os.path.join(_nyu_root, 'nyu_images')
         _depth_dir = os.path.join(_nyu_root, 'nyu_depths')
@@ -90,3 +92,63 @@ class NYUD(BaseDataset):
 
     def make_pred(self, x):
         return x
+
+    def compute_class_weights(self, weight_mode='median_frequency', c=1.02):
+        assert weight_mode in ['median_frequency', 'logarithmic', 'linear']
+
+        # build filename
+        class_weighting_filepath = os.path.join(self.BASE_DIR, 'weight', '{}.pickle'.format(weight_mode))
+
+        if os.path.exists(class_weighting_filepath):
+            class_weighting = pickle.load(open(class_weighting_filepath, 'rb'))
+            print(f'Using {class_weighting_filepath} as class weighting')
+            return class_weighting
+
+        print('Compute class weights')
+
+        LabelFile = os.path.join(self.BASE_DIR, 'nyuv2_meta/labels40.mat')
+        data = scipy.io.loadmat(LabelFile)
+        labels = np.array(data["labels40"])
+
+        n_pixels_per_class = np.zeros(self.NUM_CLASS + 1)
+        n_image_pixels_with_class = np.zeros(self.NUM_CLASS + 1)
+        for i in range(1449):
+            label = np.array(labels[:, :, i])
+            h, w = label.shape
+            current_dist = np.bincount(label.flatten(), minlength=self.NUM_CLASS + 1)
+            n_pixels_per_class += current_dist
+
+            # For median frequency we need the pixel sum of the images where the specific class is present.
+            # (It only matters if the class is present in the image and not how many pixels it occupies.)
+            class_in_image = current_dist > 0
+            n_image_pixels_with_class += class_in_image * h * w
+            print(f'\r{i + 1}/{len(self)}', end='')
+        print()
+
+        # remove void
+        n_pixels_per_class = n_pixels_per_class[1:]
+        n_image_pixels_with_class = n_image_pixels_with_class[1:]
+
+        if weight_mode == 'linear':
+            class_weighting = n_pixels_per_class
+
+        elif weight_mode == 'median_frequency':
+            frequency = n_pixels_per_class / n_image_pixels_with_class
+            class_weighting = np.median(frequency) / frequency
+
+        elif weight_mode == 'logarithmic':
+            probabilities = n_pixels_per_class / np.sum(n_pixels_per_class)
+            class_weighting = 1 / np.log(c + probabilities)
+
+        if np.isnan(np.sum(class_weighting)):
+            print(f"n_pixels_per_class: {n_pixels_per_class}")
+            print(f"n_image_pixels_with_class: {n_image_pixels_with_class}")
+            print(f"class_weighting: {class_weighting}")
+            raise ValueError('class weighting contains NaNs')
+
+        with open(class_weighting_filepath, 'wb') as f:
+            pickle.dump(class_weighting, f)
+        print(f'Saved class weights under {class_weighting_filepath}.')
+        return class_weighting
+
+

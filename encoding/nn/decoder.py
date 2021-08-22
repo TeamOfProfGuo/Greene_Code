@@ -36,7 +36,7 @@ class Res_Up_Block(nn.Module):
 
 
 class IRB_Decoder(nn.Module):
-    def __init__(self, n_classes, feat='l', mrfs = None, aux=None, auxl = None, dan=None, out=None):
+    def __init__(self, n_classes, feat='l', decode_feat=[None, 64, 128, 256, 512], mrfs=None, aux=None, auxl=None, dan=None, out=None):
         super().__init__()
 
         self.aux = aux
@@ -46,8 +46,7 @@ class IRB_Decoder(nn.Module):
         self.mrf_args = parse_setting(mrfs)
         mrf_att = self.mrf_args.pop('mrf', None)
 
-        #decoder_feats = [256, 128, 64]
-        decode_feat = [None, 64, 128, 256, 512]
+        # decode_feat = [64, 64, 128, 256, 512]  [64, 256, 512, 1024, 2048]
         shapes = [None, (120, 120), (60, 60), (30, 30), (15, 15)]
 
         # Upsample Blocks
