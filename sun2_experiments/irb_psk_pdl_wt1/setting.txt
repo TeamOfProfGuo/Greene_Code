@@ -3,10 +3,10 @@
 
 base:        00
 
-aux_loss:    if009 hf009 gf009
+aux_loss:    if009 hf009 gf009     # run 400 epochs
 
 #Note： train超参顺序为： Scheduler + LR + AuxWeight
-
+             hf009_p38,
 
              if009_p35 if009_p38 if009_p3a if009_p3b
 
