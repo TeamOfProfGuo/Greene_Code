@@ -218,8 +218,7 @@ class Trainer():
 
             if i % 40 == 0:
                 print('eval mean IOU {}'.format(mIOU))
-            loss = total_loss / len(self.valloader)
-
+        loss = total_loss / len(self.valloader)
         self.writer.add_scalar("mean_iou/val", mIOU, epoch)
         self.writer.add_scalar("pixel accuracy/val", pixAcc, epoch)
 
