@@ -36,7 +36,8 @@ class RFUNet(nn.Module):
             self.layer0 = nn.Sequential(self.base.conv1, self.base.bn1, self.base.relu,
                                         self.base.conv2, self.base.bn2, self.base.relu,
                                         self.base.conv3, self.base.bn3, self.base.relu,)  # [B, 64, h/2, w/2]
-            self.d_layer0= nn.Sequential(deepcopy(self.base.conv1), deepcopy(self.base.bn1), self.base.relu,
+            self.d_layer0= nn.Sequential(nn.Conv2d(1, 64, kernel_size=3, stride=2, padding=1, bias=False),
+                                         deepcopy(self.base.bn1), self.base.relu,
                                          deepcopy(self.base.conv2), deepcopy(self.base.bn2), self.base.relu,
                                          deepcopy(self.base.conv3), deepcopy(self.base.bn3), self.base.relu,)  # [B, 64, h/2, w/2]
 
@@ -50,7 +51,13 @@ class RFUNet(nn.Module):
         self.d_layer3 = deepcopy(self.layer3)
         self.d_layer4 = deepcopy(self.layer4)
 
-        feat_ch=[64, 64, 128, 256, 512] if backbone in ['resnet18','resnet34'] else [64, 256, 512, 1024, 2048]
+        if backbone in ['resnet18','resnet34']:
+            feat_ch=[64, 64, 128, 256, 512]
+        elif backbone in ['resnet50']:
+            feat_ch = [64, 256, 512, 1024, 2048]
+        elif backbone in ['resnet50c']:
+            feat_ch = [128, 256, 512, 1024, 2048]
+
         self.fuse0 = Fuse_Block(feat_ch[0], shape=(240, 240), mmf_att=mmf_att, **self.mmf_args)
         self.fuse1 = Fuse_Block(feat_ch[1], shape=(120, 120), mmf_att=mmf_att, **self.mmf_args)
         self.fuse2 = Fuse_Block(feat_ch[2], shape=(60, 60), mmf_att=mmf_att, **self.mmf_args)

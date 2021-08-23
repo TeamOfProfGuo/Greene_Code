@@ -208,16 +208,11 @@ class AttGate2b(nn.Module):
 
 
 class PSK(nn.Module):
-    def __init__(self, in_ch, shape=None, dd=8, r=16, act_fn=None, pp=None):
+    def __init__(self, in_ch, shape=None, dd=8, r=32, act_fn=None, pp=None):
         super().__init__()
         self.pp = pp
-        d = max(int(in_ch / r), 32)
-        if pp is None or pp=='a':
-            self.pp_size = (1, 3, 5)  # pp_size: pyramid layer num
-        elif pp == 'b':
-            self.pp_size = (1, 2, 4, 8)
-        elif pp == 'c':
-            self.pp_size = (1, 2, 4, 8)
+        d = 16 if in_ch<=256 else 32
+        self.pp_size = (1, 2, 4, 8)
 
         self.feats_size = sum([(s ** 2) for s in self.pp_size])  # f: total feats for descriptor
         self.dd = dd  # dd: descriptor dim (for one channel)
@@ -244,8 +239,10 @@ class PSK(nn.Module):
         batch_size, ch, _, _ = x.size()
         if self.pp =='b':
             U = x + y
-        elif self.pp in ['c', 'a']:
+        elif self.pp == 'c':
             U = x
+        elif self.pp == 'a':
+            U = y
 
         pooling_pyramid = []
         for s in self.pp_size:
@@ -674,7 +671,7 @@ class GCGF_Module(nn.Module):
             'pdl': PDL_Block
         }
         gcf = parse_setting(gcf, sep_out='&', sep_in='-')
-        gca= parse_setting(gca)
+        gca = parse_setting(gca)
         self.pre_att = att
         if self.pre_att is not 'idt':
             self.pre1 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gca)
@@ -691,6 +688,8 @@ class GCGF_Module(nn.Module):
 class PDL_Block(nn.Module):
     def __init__(self, in_feats, shape=None, pp_layer=4, descriptor=8, mfeats=16):
         super().__init__()
+        mfeats = 16 if in_feats<=256 else 32
+
         self.layer_size = pp_layer  # l: pyramid layer num
         self.feats_size = (4 ** pp_layer - 1) // 3  # f: feats for descritor
         self.descriptor = descriptor  # d: descriptor num (for one channel)

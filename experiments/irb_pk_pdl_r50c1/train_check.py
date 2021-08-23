@@ -28,7 +28,7 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = './experiments/irb_pk_pdl_r50b/results/config.yaml'
+CONFIG_PATH = './experiments/irb_pk_pdl_r50/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 

@@ -59,7 +59,7 @@ class Trainer():
         kwargs = {'num_workers': args.workers, 'pin_memory': True} if args.cuda else {}
         self.trainloader = data.DataLoader(trainset, batch_size=args.batch_size, drop_last=True, shuffle=True, **kwargs)
         self.valloader = data.DataLoader(testset, batch_size=args.batch_size, drop_last=False, shuffle=False, **kwargs)
-        self.nclass = trainset.num_class
+        self.nclass = trainset.NUM_CLASS
 
         # model and params
         model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True,
@@ -72,7 +72,7 @@ class Trainer():
         self.model = model.to(self.device)
 
         # optimizer using different LR
-        base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
+        base_modules = [model.base, model.d_layer0, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
         # if args.backbone in ['resnet50c']:
 
         base_ids = utils.get_param_ids(base_modules)
