@@ -43,11 +43,11 @@ class SUNRBDBase:
         BASE_DIR = '../dataset/sunrgbd/'
 
 
-class SUNRGBD(SUNRBDBase, BaseDataset):
+class SUN_RGBD(SUNRBDBase, BaseDataset):
     def __init__(self, root='./encoding/data', split='train', mode='train', transform=None,
                  dep_transform=None, target_transform=None, depth_mode='refined', with_input_orig=False, **kwargs):
         # depth_mode = 'refined'
-        super(SUNRGBD, self).__init__(root, split, mode, transform, target_transform, **kwargs)
+        super(SUN_RGBD, self).__init__(root, split, mode, transform, target_transform, **kwargs)
         self.dep_transform = dep_transform
         print('==check dep_transform {}'.format(dep_transform))
 
