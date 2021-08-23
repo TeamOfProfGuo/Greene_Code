@@ -5,7 +5,7 @@
 ###########################################################################
 
 import os, sys
-BASE_DIR = '/scratch/lg154/sseg/Greene_Code/'
+BASE_DIR = os.path.dirname(os.path.dirname(os.getcwd()))
 sys.path.append(BASE_DIR)
 import copy
 import yaml
@@ -28,11 +28,11 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = './sun_experiments/irb_psk_pdl_wt1/results/config.yaml'
+CONFIG_PATH = './sun_experiments/res50_c1/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
-s = 'hf_0002'
+s = 'hf_000a'
 model_kwargs = utils.get_model_args(s)
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print(model_kwargs)
@@ -53,9 +53,10 @@ input_transform = transform.Compose([
     transform.ToTensor(),  # convert RGB [0,255] to FloatTensor in range [0, 1]
     transform.Normalize([.485, .456, .406], [.229, .224, .225])])   # mean and std based on imageNet
 dep_transform = transform.Compose([
-    transform.ToTensor(),
-    transform.Normalize(mean=[0.2798], std=[0.1387])  # mean and std for depth
-])
+            transform.ToTensor(),
+            transform.Lambda(lambda x: x.float()),
+            transform.Normalize(mean=[19025.15], std=[9880.92])  # mean and std for depth
+        ])
 # dataset
 data_kwargs = {'transform': input_transform, 'dep_transform':dep_transform,
                'base_size': args.base_size, 'crop_size': args.crop_size}
@@ -69,22 +70,10 @@ valloader = data.DataLoader(testset, batch_size=args.batch_size, drop_last=False
 nclass = trainset.num_class
 
 # model
-root = '/scratch/lg154/sseg/Greene_Code/encoding/models/pretrain'
 model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True, dtype = args.dtype,
-                               root=root, **model_kwargs)
+                               root='./encoding/models/pretrain', **model_kwargs)
 
 print(model)
-
-
-# using cuda
-device = torch.device("cuda:0" if args.cuda else "cpu")
-if args.cuda:
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(),
-              "GPUs!")  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-        model = nn.DataParallel(model, device_ids=GPUS)
-model = model.to(device)
-
 
 # optimizer using different LR
 base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
@@ -96,22 +85,69 @@ optimizer = torch.optim.SGD([{'params': base_params, 'lr': args.lr},
                             lr=args.lr,momentum=args.momentum, weight_decay=args.weight_decay)
 
 # criterions
+if train_args['class_weight'] is not None:
+    import pickle
 
-import pickle
-fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
-with open(os.path.join('/scratch/lg154/sseg/dataset/NYUD_v2/weight', fname), 'rb') as handle:
-    wt = pickle.load(handle)
-class_wt = torch.FloatTensor(wt)
-# class_wt = torch.FloatTensor(wt).to(device)
+    wt_path = os.path.join(trainset.BASE_DIR, 'weight', '{}.pickle'.format(train_args['class_weight']))
+    with open(wt_path, 'rb') as handle:
+        wt = pickle.load(handle)
+    class_wt = torch.FloatTensor(wt)
+else:
+    class_wt = None
 
-type = None if len(train_args['class_weight'])==1 else 's'
 criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
-                                    nclass=nclass, weight=class_wt,
-                                    aux_weight=train_args['aux_weight'], type=type)
-
+                               nclass=nclass, weight=class_wt,
+                               aux_weight=args.aux_weight, type=None)
 
 scheduler = utils.LR_Scheduler_Head(args.lr_scheduler, args.lr, args.epochs, len(trainloader), warmup_epochs=1)
 best_pred = 0.0
 
+# using cuda
+device = torch.device("cuda:0" if args.cuda else "cpu")
+if args.cuda:
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(),
+              "GPUs!")  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model, device_ids=GPUS)
+model = model.to(device)
 
 
+
+
+# ==================== train =====================
+train_loss = 0.0
+epoch = 1
+model.train()
+for i, (image, dep, target) in enumerate(trainloader):
+    print('1 batch')
+    break
+
+scheduler(optimizer, i, epoch, best_pred)
+
+optimizer.zero_grad()
+
+
+outputs = model(image, dep)
+
+loss = criterion(*outputs, target)
+loss.backward()
+optimizer.step()
+
+train_loss += loss.item()
+
+
+
+####################### mIOU
+
+total_inter, total_union, total_correct, total_label, total_loss = 0, 0, 0, 0, 0
+correct, labeled = utils.batch_pix_accuracy(outputs[0].data, target)
+inter, union = utils.batch_intersection_union(outputs[0].data, target, nclass)
+total_correct += correct
+total_label += labeled
+total_inter += inter
+total_union += union
+train_loss += loss.item()
+
+pixAcc = 1.0 * total_correct / (np.spacing(1) + total_label)
+IOU = 1.0 * total_inter / (np.spacing(1) + total_union)
+mIOU = IOU.mean()

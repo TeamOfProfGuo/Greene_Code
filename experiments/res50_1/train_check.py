@@ -5,7 +5,7 @@
 ###########################################################################
 
 import os, sys
-BASE_DIR = '/scratch/lg154/sseg/Greene_Code/'
+BASE_DIR = os.path.dirname(os.path.dirname(os.getcwd()))
 sys.path.append(BASE_DIR)
 import copy
 import yaml
@@ -28,11 +28,11 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = './sun_experiments/irb_psk_pdl_wt1/results/config.yaml'
+CONFIG_PATH = './experiments/irb_pk_pdl_r50/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
-s = 'hf_0002'
+s = 'hf_000a'
 model_kwargs = utils.get_model_args(s)
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print(model_kwargs)
@@ -69,22 +69,10 @@ valloader = data.DataLoader(testset, batch_size=args.batch_size, drop_last=False
 nclass = trainset.num_class
 
 # model
-root = '/scratch/lg154/sseg/Greene_Code/encoding/models/pretrain'
 model = get_segmentation_model(args.model, dataset=args.dataset, backbone=args.backbone, pretrained=True, dtype = args.dtype,
-                               root=root, **model_kwargs)
+                               root='./encoding/models/pretrain', **model_kwargs)
 
 print(model)
-
-
-# using cuda
-device = torch.device("cuda:0" if args.cuda else "cpu")
-if args.cuda:
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(),
-              "GPUs!")  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-        model = nn.DataParallel(model, device_ids=GPUS)
-model = model.to(device)
-
 
 # optimizer using different LR
 base_modules = [model.base, model.d_layer1, model.d_layer2, model.d_layer3, model.d_layer4]
@@ -96,22 +84,52 @@ optimizer = torch.optim.SGD([{'params': base_params, 'lr': args.lr},
                             lr=args.lr,momentum=args.momentum, weight_decay=args.weight_decay)
 
 # criterions
+if train_args['class_weight'] is not None:
+    import pickle
 
-import pickle
-fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
-with open(os.path.join('/scratch/lg154/sseg/dataset/NYUD_v2/weight', fname), 'rb') as handle:
-    wt = pickle.load(handle)
-class_wt = torch.FloatTensor(wt)
-# class_wt = torch.FloatTensor(wt).to(device)
+    wt_path = os.path.join(trainset.BASE_DIR, 'weight', '{}.pickle'.format(train_args['class_weight']))
+    with open(wt_path, 'rb') as handle:
+        wt = pickle.load(handle)
+    class_wt = torch.FloatTensor(wt)
+else:
+    class_wt = None
 
-type = None if len(train_args['class_weight'])==1 else 's'
 criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
-                                    nclass=nclass, weight=class_wt,
-                                    aux_weight=train_args['aux_weight'], type=type)
-
+                               nclass=nclass, weight=class_wt,
+                               aux_weight=args.aux_weight, type=None)
 
 scheduler = utils.LR_Scheduler_Head(args.lr_scheduler, args.lr, args.epochs, len(trainloader), warmup_epochs=1)
 best_pred = 0.0
 
+# using cuda
+device = torch.device("cuda:0" if args.cuda else "cpu")
+if args.cuda:
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(),
+              "GPUs!")  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        model = nn.DataParallel(model, device_ids=GPUS)
+model = model.to(device)
 
 
+
+
+# ==================== train =====================
+train_loss = 0.0
+epoch = 1
+model.train()
+for i, (image, dep, target) in enumerate(trainloader):
+    print('1 batch')
+    break
+
+scheduler(optimizer, i, epoch, best_pred)
+
+optimizer.zero_grad()
+
+
+outputs = model(image, dep)
+
+loss = criterion(*outputs, target)
+loss.backward()
+optimizer.step()
+
+train_loss += loss.item()
