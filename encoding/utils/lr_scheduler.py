@@ -29,7 +29,7 @@ class LR_Scheduler(object):
         iters_per_epoch: number of iterations per epoch
     """
     def __init__(self, mode, base_lr, num_epochs, iters_per_epoch=0,
-                 lr_step=0, warmup_epochs=0, quiet=False, min_lr=1e-6):
+                 lr_step=20, warmup_epochs=0, quiet=False, min_lr=1e-6):
         self.mode = mode
         self.quiet = quiet
         self.min_lr = min_lr
@@ -56,7 +56,7 @@ class LR_Scheduler(object):
             T = T - self.warmup_iters
             lr = self.base_lr * pow((1 - 1.0 * T / self.total_iters), 0.9)
         elif self.mode == 'step':
-            lr = self.base_lr * (0.1 ** (epoch // self.lr_step))
+            lr = self.base_lr * (0.7 ** (epoch // self.lr_step))
         else:
             raise NotImplemented
         if epoch > self.epoch and (epoch == 0 or best_pred > 0.0):
