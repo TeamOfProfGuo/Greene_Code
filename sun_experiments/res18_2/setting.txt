@@ -7,9 +7,9 @@ aux_loss:    gf009  hf009 if009
 
 #Note： train超参顺序为： Scheduler + LR + AuxWeight
 
-             hf009_p35 hf009_p3a hf009_p3a1 hf009_p3a2 hf009_p3aa
+             hf009_p35 hf009_p3a hf009_p351 hf009_p352 hf009_p35a
              hf009_p25
-             hf009_c35 hf009_c3a hf009_c3a1 hf009_c3a2 hf009_p3aa
+             hf009_c35 hf009_c3a hf009_c351 hf009_c352 hf009_p35a
              hf009_s35
 
 
