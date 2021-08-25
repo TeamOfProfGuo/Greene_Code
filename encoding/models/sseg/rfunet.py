@@ -16,10 +16,10 @@ __all__ = ['RFUNet', 'get_rfunet']
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', refine=None, mmfs=None, mrfs=None, auxl='a', dtype='irb', ctr=None, dan=None, out=None, **kwargs):
+                 fuse_type='1stage', mmfs=None, mrfs=None, auxl='a', dtype='irb', ctr=None, dan=None, out=None, **kwargs):
         """ axu: '321', '32', '21', '3', '2', '1' """
         super(RFUNet, self).__init__()
-        self.ctr, self.dtype = ctr, dtype
+        self.ctr, self.dtype, self.backbone, self.root = ctr, dtype, backbone, root
         self.mmf_args = parse_setting(mmfs, sep_out='|', sep_in='=')
         mmf_att = self.mmf_args.pop('mmf', None)
         print('++++++aux:{}++++++auxl:{}++++++mmf:{}, mmf_args:{}+++++++'.format(aux, auxl, mmf_att, self.mmf_args))
@@ -28,10 +28,11 @@ class RFUNet(nn.Module):
 
         if backbone in ['resnet18', 'resnet50']:
             self.layer0 = nn.Sequential(self.base.conv1, self.base.bn1, self.base.relu)  # [B, 64, h/2, w/2]
-            self.d_layer0 = nn.Sequential(
-                nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False),
-                deepcopy(self.base.bn1),
-                deepcopy(self.base.relu))
+            self.d_conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+            self.init_dep()
+            self.d_layer0 = nn.Sequential(self.d_conv1,
+                                          deepcopy(self.base.bn1),
+                                          deepcopy(self.base.relu))
         else:
             self.layer0 = nn.Sequential(self.base.conv1, self.base.bn1, self.base.relu,
                                         self.base.conv2, self.base.bn2, self.base.relu,
@@ -104,6 +105,20 @@ class RFUNet(nn.Module):
         # ======== decoder ========
         outputs = self.decoder(feats)
         return outputs
+
+    def init_dep(self):
+        fpath_dict={'resnet18':'resnet18-5c106cde.pth','resnet50':'resnet50-19c8e357.pth','resnet50c': 'resnet50_v2.pth'}
+        fpath = os.path.join(self.root, fpath_dict[self.backbone])
+
+        weights = torch.load(fpath)
+        conv1_ori = weights['conv1.weight'].data
+        conv1_new = torch.zeros((64, 1, 7, 7), dtype=torch.float32)
+        conv1_new[:, 0, :, :] = conv1_ori[:, 1, :, :]
+
+        with torch.no_grad():
+            self.d_conv1.weight.copy_(conv1_new)
+        print('init param for d_conv1~~~~')
+
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
                fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, auxl='a', **kwargs):
