@@ -172,23 +172,24 @@ class Trainer():
             self.training(epoch)
 
             # evaluate for one epoch on the validation set
-            print('\n+++++++++++++++++++++start testing, training epoch {}+++++++++++++++++++++\n'.format(epoch))
-            pixAcc, mIOU, loss = self.validation(epoch)
-            print('evaluation pixel acc {}, mean IOU {}, loss {}'.format(pixAcc, mIOU, loss))
+            if epoch%2==0 or epoch>=120: 
+                print('\n+++++++++++++++++++++start testing, training epoch {}+++++++++++++++++++++\n'.format(epoch))
+                pixAcc, mIOU, loss = self.validation(epoch)
+                print('evaluation pixel acc {}, mean IOU {}, loss {}'.format(pixAcc, mIOU, loss))
 
-            # save the best model
-            is_best = False
-            new_pred = (pixAcc + mIOU) / 2
-            if new_pred > self.best_pred:
-                is_best = True
-                self.best_pred = new_pred
-            path = 'runs/' + "/".join(("{}-{}".format(*i) for i in model_kwargs.items()))
-            if train_setting is not None:
-                path = os.path.join(path, train_setting)
-            utils.save_checkpoint({'epoch': epoch + 1,
-                                   'state_dict': self.model.state_dict(),
-                                   'optimizer': self.optimizer.state_dict(),
-                                   'best_pred': self.best_pred}, self.args, is_best, path = path)
+                # save the best model
+                is_best = False
+                new_pred = (pixAcc + mIOU) / 2
+                if new_pred > self.best_pred:
+                    is_best = True
+                    self.best_pred = new_pred
+                path = 'runs/' + "/".join(("{}-{}".format(*i) for i in model_kwargs.items()))
+                if train_setting is not None:
+                    path = os.path.join(path, train_setting)
+                utils.save_checkpoint({'epoch': epoch + 1,
+                                       'state_dict': self.model.state_dict(),
+                                       'optimizer': self.optimizer.state_dict(),
+                                       'best_pred': self.best_pred}, self.args, is_best, path = path)
 
     def validation(self, epoch):
         # Fast test during the training
