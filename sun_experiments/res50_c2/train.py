@@ -172,7 +172,7 @@ class Trainer():
             self.training(epoch)
 
             # evaluate for one epoch on the validation set
-            if epoch%2==0 or epoch>=120: 
+            if epoch%2==0 or epoch>=120:
                 print('\n+++++++++++++++++++++start testing, training epoch {}+++++++++++++++++++++\n'.format(epoch))
                 pixAcc, mIOU, loss = self.validation(epoch)
                 print('evaluation pixel acc {}, mean IOU {}, loss {}'.format(pixAcc, mIOU, loss))
