@@ -73,6 +73,8 @@ class Level_Fuse(nn.Module):
         self.mrf_att = mrf_att
         if self.mrf_att == 'GF1':
             self.mrf_att, pre = 'GF', (True, False)
+        if self.mrf_att == 'GF2':
+            self.mrf_att, pre = 'GF', (True, False)
         self.pre_flag = pre
         if self.mrf_att is not None:
             self.fuse = Module_Dict[self.mrf_att](in_ch, shape=shape, **kwargs)
