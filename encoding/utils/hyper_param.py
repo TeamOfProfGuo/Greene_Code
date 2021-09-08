@@ -18,7 +18,14 @@ module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':
 
                'g': 'PSK|act_fn=sig|pp=a', 'h': 'PSK|act_fn=sig|pp=b', 'i': 'PSK|act_fn=sig|pp=c',      # 注意 b: U=x+y, c:  U=x  a: U=y
                'j': 'PSK|act_fn=soft|pp=a', 'k': 'PSK|act_fn=soft|pp=b', 'l': 'PSK|act_fn=soft|pp=c',
+
+               'r': 'PSK|act_fn=sig|pp=b|ppl=1',
+               's': 'PSK|act_fn=sig|pp=b|ppl=2',
+               't': 'PSK|act_fn=sig|pp=b|ppl=3',
+               'u': 'PSK|act_fn=sig|pp=b|ppl=4',
+
                '0': None, None:None
+
 
                }
 # 第三位【2】

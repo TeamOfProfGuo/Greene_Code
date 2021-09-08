@@ -32,7 +32,7 @@ CONFIG_PATH = 'experiments/res18_5/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
-s = '0o'
+s = 's0'
 model_kwargs = utils.get_model_args(s)
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print(model_kwargs)

@@ -208,19 +208,20 @@ class AttGate2b(nn.Module):
 
 
 class PSK(nn.Module):
-    def __init__(self, in_ch, shape=None, dd=8, r=32, act_fn=None, pp=None):
+    def __init__(self, in_ch, shape=None, dd=8, r=32, ppl=4, act_fn=None, pp=None):
         super().__init__()
         self.pp = pp
         d = 16 if in_ch<=256 else 32
-        self.pp_size = (1, 2, 4, 8)
+        self.ppl = ppl
 
-        self.feats_size = sum([(s ** 2) for s in self.pp_size])  # f: total feats for descriptor
-        self.dd = dd  # dd: descriptor dim (for one channel)
+        self.feats_size = (4 ** ppl - 1) // 3  # f: total feats for descriptor
+        self.descriptor = min(dd, self.feats_size)   # dd: descriptor dim (for one channel)
         self.act_fn = act_fn
-        print('pp_size = %s, descriptor_dim = %d, int_ch = %d.' % (self.pp_size, self.dd, d))
+        print('ppl = %s, descriptor_dim = %d, int_ch = %d.' % (self.ppl, self.descriptor, d))
 
-        self.des = nn.Conv2d(self.feats_size, self.dd, kernel_size=1)
-        self.fc = nn.Sequential(nn.Linear(in_ch * self.dd, d, bias=False),
+        if self.ppl>=3:
+            self.des = nn.Conv2d(self.feats_size, self.descriptor, kernel_size=1)
+        self.fc = nn.Sequential(nn.Linear(in_ch * self.descriptor, d, bias=False),
                                 nn.BatchNorm1d(d),
                                 nn.ReLU(inplace=True))
         # 各个分支
@@ -245,11 +246,15 @@ class PSK(nn.Module):
             U = y
 
         pooling_pyramid = []
-        for s in self.pp_size:
-            pooling_pyramid.append(F.adaptive_avg_pool2d(U, s).view(batch_size, ch, 1, -1))  # [B, c, 1, s^2]
+        for s in range(self.ppl):
+            pooling_pyramid.append(F.adaptive_avg_pool2d(U, 2**s).view(batch_size, ch, 1, -1))  # [B, c, 1, s^2]
         z = torch.cat(tuple(pooling_pyramid), dim=-1)    # [B, c, 1, f]
         z = z.reshape(batch_size * ch, -1, 1, 1)         # [bc, f, 1, 1]
-        z = self.des(z).view(batch_size, ch * self.dd)   # [bc, dd, 1, 1] => [b, c*dd]
+
+        if self.ppl>=3:
+            z = self.des(z).view(batch_size, ch * self.descriptor)   # [bc, dd, 1, 1] => [b, c*dd]
+        else:
+            z = z.view(batch_size, ch*self.descriptor)
         z = self.fc(z)  # [B, d]
 
         z_x = self.fc_x(z)  # [B, c]
