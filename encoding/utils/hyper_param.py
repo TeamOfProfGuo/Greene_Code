@@ -10,6 +10,10 @@ module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':
                'c': 'PA3a|act_fn=sigmoid', 'd': 'PA3a|act_fn=tanh',
                'e': 'GF|att=pdl|gcf=merge-gc', 'f': 'GF1|att=pdl|gcf=merge-gc',   # 备注 gca=None
                'm': 'GF1|att=pdl|gcf=merge-add',
+               'n': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-1',
+               'o': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-2',
+               'p': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-3',
+               'q': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-4',
 
 
                'g': 'PSK|act_fn=sig|pp=a', 'h': 'PSK|act_fn=sig|pp=b', 'i': 'PSK|act_fn=sig|pp=c',      # 注意 b: U=x+y, c:  U=x  a: U=y

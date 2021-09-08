@@ -663,6 +663,8 @@ class GCGF_Block(nn.Module):
         return self.merge(x, y)
 
 
+# 'GF|att=pdl|gcf=merge-gc|gca=ppl-1'
+
 class GCGF_Module(nn.Module):
     def __init__(self, in_ch, shape=None, att='idt', gcf=None, gca=None):
         super().__init__()
@@ -671,7 +673,7 @@ class GCGF_Module(nn.Module):
             'pdl': PDL_Block
         }
         gcf = parse_setting(gcf, sep_out='&', sep_in='-')
-        gca = parse_setting(gca)
+        gca = parse_setting(gca, sep_out='&', sep_in='-')
         self.pre_att = att
         if self.pre_att is not 'idt':
             self.pre1 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gca)
@@ -686,17 +688,18 @@ class GCGF_Module(nn.Module):
 
 
 class PDL_Block(nn.Module):
-    def __init__(self, in_feats, shape=None, pp_layer=4, descriptor=8, mfeats=16):
+    def __init__(self, in_feats, shape=None, ppl=4, descriptor=8,  mfeats=16):   # ppl: num of levels in PDL
         super().__init__()
         mfeats = 16 if in_feats<=256 else 32
 
-        self.layer_size = pp_layer  # l: pyramid layer num
-        self.feats_size = (4 ** pp_layer - 1) // 3  # f: feats for descritor
-        self.descriptor = descriptor  # d: descriptor num (for one channel)
+        self.layer_size = ppl  # l: pyramid layer num
+        self.feats_size = (4 ** ppl - 1) // 3  # f: feats for descritor
+        self.descriptor = min(descriptor, self.feats_size)  # d: descriptor num (for one channel)
 
-        self.des = nn.Conv2d(self.feats_size, descriptor, kernel_size=1)
+        if self.layer_size>=3:
+            self.des = nn.Conv2d(self.feats_size, descriptor, kernel_size=1)
         self.mlp = nn.Sequential(
-            nn.Linear(descriptor * in_feats, mfeats, bias=False),
+            nn.Linear(self.descriptor * in_feats, mfeats, bias=False),
             nn.ReLU(inplace=True),
             nn.Linear(mfeats, in_feats),
             nn.Sigmoid()
@@ -710,7 +713,10 @@ class PDL_Block(nn.Module):
             pooling_pyramid.append(F.adaptive_avg_pool2d(x, 2 ** i).view(b, c, 1, -1))
         y = torch.cat(tuple(pooling_pyramid), dim=-1)  # [b,  c, 1, f]
         y = y.reshape(b * c, f, 1, 1)  # [bc, f, 1, 1]
-        y = self.des(y).view(b, c * d)  # [bc, d, 1, 1] => [b, cd, 1, 1]
+        if self.layer_size >= 3:
+            y = self.des(y).view(b, c * d)  # [bc, d, 1, 1] => [b, cd, 1, 1]
+        else:
+            y = y.view(b, c*f)
         w = self.mlp(y).view(b, c, 1, 1)  # [b,  c, 1, 1] => [b, c, 1, 1]
         return w * x
 
