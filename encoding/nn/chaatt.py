@@ -219,7 +219,7 @@ class PSK(nn.Module):
         self.act_fn = act_fn
         print('ppl = %s, descriptor_dim = %d, int_ch = %d.' % (self.ppl, self.descriptor, d))
 
-        if self.ppl>=3:
+        if self.ppl >= 3:
             self.des = nn.Conv2d(self.feats_size, self.descriptor, kernel_size=1)
         self.fc = nn.Sequential(nn.Linear(in_ch * self.descriptor, d, bias=False),
                                 nn.BatchNorm1d(d),
@@ -238,7 +238,7 @@ class PSK(nn.Module):
 
     def forward(self, x, y):
         batch_size, ch, _, _ = x.size()
-        if self.pp =='b':
+        if self.pp =='b' or self.pp is None:
             U = x + y
         elif self.pp == 'c':
             U = x
@@ -251,7 +251,7 @@ class PSK(nn.Module):
         z = torch.cat(tuple(pooling_pyramid), dim=-1)    # [B, c, 1, f]
         z = z.reshape(batch_size * ch, -1, 1, 1)         # [bc, f, 1, 1]
 
-        if self.ppl>=3:
+        if self.ppl >= 3:
             z = self.des(z).view(batch_size, ch * self.descriptor)   # [bc, dd, 1, 1] => [b, c*dd]
         else:
             z = z.view(batch_size, ch*self.descriptor)
