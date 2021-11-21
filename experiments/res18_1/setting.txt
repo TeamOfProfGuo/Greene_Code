@@ -3,22 +3,10 @@
 
 base:
        00   30  50
-       h0
-       0f
-       0e
-       0m
-       hf
-       hf009
+       h0 r0 s0 t0 u0
 
-       hf009_p35 hf009_p38 hf009_p3a
-       hf009_p351
-       hf009_p352
-       hf009_p351
 
-       hf009_c35  hf009_c3a
-       hf009_c351
-       hf009_c352
-       hf009_c35a
+
 
 
 
