@@ -28,11 +28,11 @@ from encoding.datasets import get_dataset
 from encoding.models import get_segmentation_model
 
 BASE_DIR = '.'
-CONFIG_PATH = 'experiments/irb_psk_pdl_wt/results/config.yaml'
+CONFIG_PATH = 'experiments/res18_1/results/config.yaml'
 SMY_PATH = os.path.dirname(CONFIG_PATH)
 GPUS = [0,1]
 
-s = 'hf_0002'
+s = 'w0'
 model_kwargs = utils.get_model_args(s)
 model_kwargs = {k:v for k, v in model_kwargs.items() if v is not None}
 print(model_kwargs)
@@ -89,11 +89,11 @@ import pickle
 fname = 'wt'+str(train_args['class_weight'][0])+'.pickle'
 with open(os.path.join(BASE_DIR, '../dataset/NYUD_v2/weight', fname), 'rb') as handle:
     wt = pickle.load(handle)
-class_wt = torch.FloatTensor(wt).to(self.device)
+
 
 type = None if len(train_args['class_weight'])==1 else 's'
 criterion = SegmentationLosses(aux=model_kwargs.get('aux'),
-                                    nclass=nclass, weight=class_wt,
+                                    nclass=nclass, weight=None,
                                     aux_weight=train_args['aux_weight'], type=type)
 
 

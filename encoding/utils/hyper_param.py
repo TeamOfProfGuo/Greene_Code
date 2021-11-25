@@ -5,6 +5,14 @@ __all__ = ['get_model_args', 'split_train_args', 'get_train_args']
 # 第一位 与 第二位
 module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':'CA2a|act_fn=softmax',
                '5':'CA2b|act_fn=sigmoid', '6':'CA2b|act_fn=softmax',
+               'v':'CA2b|act_fn=softmax|ppl=1',
+               'w':'CA2b|act_fn=softmax|ppl=2',
+               'x':'CA2b|act_fn=softmax|ppl=3',
+               'y':'CA2b|act_fn=softmax|ppl=4',
+
+
+
+
                '7':'PA0|act_fn=sigmoid', '8':'PA0|act_fn=tanh', # PA0的其他参数已经写到模块里了
                '9':'CA3', 'a':'PA2|act_fn=sigmoid', 'b':'PA2|act_fn=tanh',
                'c': 'PA3a|act_fn=sigmoid', 'd': 'PA3a|act_fn=tanh',

@@ -10,33 +10,6 @@ __all__ = ['AttGate1', 'AttGate2', 'AttGate2a', 'AttGate2b', 'AttGate2d', 'AttGa
            'AttGate5c', 'AttGate6', 'AttGate9', 'PSK']
 
 
-# class AttGate2(Module):
-#     """ Channel attention module"""
-#     def __init__(self, in_ch, reduce_rate=16):
-#         super(AttGate2, self).__init__()
-#         self.global_avg = nn.AdaptiveAvgPool2d(1)
-#         fc_ch = max(in_ch//reduce_rate, 32)
-#         self.fc = nn.Sequential(nn.Conv2d(in_ch, fc_ch, kernel_size=1, stride=1, bias=False),
-#                                 nn.BatchNorm2d(num_features=fc_ch),
-#                                 nn.ReLU(inplace=True))
-#         self.a_linear = nn.Conv2d(fc_ch, in_ch, kernel_size=1, stride=1)
-#         self.b_linear = nn.Conv2d(fc_ch, in_ch, kernel_size=1, stride=1)
-#         self.softmax = Softmax(dim=2)
-#
-#     def forward(self, x, y):
-#         """
-#         inputs : x : input feature maps( B X C X H X W); y : input feature maps( B X C X H X W)
-#         returns : out: [B, c, h, w]; attention [B, c, 1, 1] for both x and y
-#         """
-#         u = self.global_avg(x + y)                          # [B, c, 1, 1]
-#         z = self.fc(u)                                      # [B, d, 1, 1]
-#         a_att, b_att = self.a_linear(z), self.b_linear(z)   # [B, c, 1, 1]
-#         att = torch.cat((a_att, b_att), dim=2)              # [B, c, 2, 1]
-#         att = self.softmax(att)                             # [B, c, 2, 1]
-#
-#         out = torch.mul(x, att[:, :, 0:1, :]) + torch.mul(y, att[:, :, 1:2, :])
-#         return out
-
 class AttGate1(nn.Module):
     def __init__(self, in_ch, r=4):
         """same as the channel attention in SE module"""
@@ -152,60 +125,6 @@ class AttGate2a(nn.Module):
         return out
 
 
-class AttGate2b(nn.Module):
-    def __init__(self, in_ch, shape=None, r=16, act_fn=None):
-        """ Attention as in SKNet (selective kernel) """
-        super().__init__()
-        self.act_fn = act_fn
-        self.pp_size = (1, 3)
-        d = max(int(in_ch/r), 32)
-        #d = 32 if shape[0] >= 30 else 16
-        pp_d = sum(e**2 for e in self.pp_size)
-        print('pp_size: {} dimension d {}'.format(self.pp_size, d))
-
-        # to calculate Z
-        self.fc = nn.Sequential(nn.Linear(in_ch*pp_d, d, bias=False),
-                                nn.BatchNorm1d(d),
-                                nn.ReLU(inplace=True))
-        # 各个分支
-        self.fc_x = nn.Linear(d, in_ch)
-        self.fc_y = nn.Linear(d, in_ch)
-        if act_fn == 'sigmoid':
-            self.act_x = nn.Sigmoid()
-            self.act_y = nn.Sigmoid()
-        elif act_fn == 'tanh':
-            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
-            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
-        elif act_fn == 'rsigmoid':
-            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
-            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
-        elif act_fn == 'softmax':
-            self.act = nn.Softmax(dim=1)
-
-    def forward(self, x, y):
-        U = x+y
-        batch_size, ch, _, _ = U.size()
-
-        ppool = []
-        for s in self.pp_size:
-            ppool.append(F.adaptive_avg_pool2d(U, s).view(batch_size, ch, -1))  # [B, c, s*s]
-        z = torch.cat(tuple(ppool), dim=-1)            # [B, c, 1+9+25]
-        z = z.view(batch_size, -1).contiguous()        # [B, c*35]
-        z = self.fc(z)                                 # [B, d]
-
-        z_x = self.fc_x(z)  # [B, c]
-        z_y = self.fc_y(z)  # [B, c]
-        if self.act_fn in ['sigmoid', 'tanh', 'rsigmoid']:
-            w_x = self.act_x(z_x)    # [B, c]
-            w_y = self.act_y(z_y)    # [B, c]
-        elif self.act_fn == 'softmax':
-            w_xy = torch.cat((z_x, z_y), dim=1)    # [B, 2c]
-            w_xy = w_xy.view(batch_size, 2, ch)    # [B, 2, c]
-            w_xy = self.act(w_xy)                  # [B, 2, c]
-            w_x, w_y = w_xy[:, 0].contiguous(), w_xy[:, 1].contiguous()      # [B, c]
-        out = x * w_x.view(batch_size, ch, 1, 1) + y * w_y.view(batch_size, ch, 1, 1)
-        return out
-
 
 class PSK(nn.Module):
     def __init__(self, in_ch, shape=None, dd=8, r=32, ppl=4, act_fn=None, pp=None):
@@ -267,6 +186,63 @@ class PSK(nn.Module):
             w_xy = w_xy.view(batch_size, 2, ch)  # [B, 2, c]
             w_xy = self.act(w_xy)  # [B, 2, c]
             w_x, w_y = w_xy[:, 0].contiguous(), w_xy[:, 1].contiguous()  # [B, c]
+        out = x * w_x.view(batch_size, ch, 1, 1) + y * w_y.view(batch_size, ch, 1, 1)
+        return out
+
+
+
+
+class AttGate2b(nn.Module):
+    def __init__(self, in_ch, shape=None, r=16, act_fn=None, ppl=2):
+        """ Attention as in SKNet (selective kernel) """
+        super().__init__()
+        self.act_fn = act_fn
+        self.ppl = ppl
+        d = 16 if in_ch<=256 else 32
+
+        self.feats_size = (4**ppl-1) //3
+        print('number of Pooling modules: {} channel discriptor dimension {}'.format(self.ppl, self.feats_size))
+
+        # to calculate Z
+        self.fc = nn.Sequential(nn.Linear(in_ch*self.feats_size, d, bias=False),
+                                nn.BatchNorm1d(d),
+                                nn.ReLU(inplace=True))
+        # 各个分支
+        self.fc_x = nn.Linear(d, in_ch)
+        self.fc_y = nn.Linear(d, in_ch)
+        if act_fn == 'sigmoid':
+            self.act_x = nn.Sigmoid()
+            self.act_y = nn.Sigmoid()
+        elif act_fn == 'tanh':
+            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
+            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
+        elif act_fn == 'rsigmoid':
+            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
+            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
+        elif act_fn == 'softmax':
+            self.act = nn.Softmax(dim=1)
+
+    def forward(self, x, y):
+        U = x+y
+        batch_size, ch, _, _ = U.size()
+
+        ppool = []
+        for s in range(self.ppl):
+            ppool.append(F.adaptive_avg_pool2d(U, 2**s).view(batch_size, ch, -1))  # [B, c, s*s]
+        z = torch.cat(tuple(ppool), dim=-1)            # [B, c, 1+9+25]
+        z = z.view(batch_size, -1).contiguous()        # [B, c*35]
+        z = self.fc(z)                                 # [B, d]
+
+        z_x = self.fc_x(z)  # [B, c]
+        z_y = self.fc_y(z)  # [B, c]
+        if self.act_fn in ['sigmoid', 'tanh', 'rsigmoid']:
+            w_x = self.act_x(z_x)    # [B, c]
+            w_y = self.act_y(z_y)    # [B, c]
+        elif self.act_fn == 'softmax':
+            w_xy = torch.cat((z_x, z_y), dim=1)    # [B, 2c]
+            w_xy = w_xy.view(batch_size, 2, ch)    # [B, 2, c]
+            w_xy = self.act(w_xy)                  # [B, 2, c]
+            w_x, w_y = w_xy[:, 0].contiguous(), w_xy[:, 1].contiguous()      # [B, c]
         out = x * w_x.view(batch_size, ch, 1, 1) + y * w_y.view(batch_size, ch, 1, 1)
         return out
 
