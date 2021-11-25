@@ -12,17 +12,17 @@
 #SBATCH --gres=gpu # How much gpu need, n is the number
 
 module purge
-source ~/.bashrc
-source /scratch/lg154/anaconda3/bin/activate
-source activate python36
-module load cuda/10.2.89 
-#module load cudnn/7.5
+
+mkdir -p log 
+
+echo "start"
+singularity exec --nv \
+            --overlay /scratch/lg154/python36/python36.ext3:ro \
+            /scratch/work/public/singularity/cuda11.2.2-cudnn8-devel-ubuntu20.04.sif \
+            /bin/bash -c "source /ext3/env.sh; python train.py $1 > log/$1.log 2>&1"
+
+echo "finish"
+
 
 #GREENE GREENE_GPU_MPS=yes
 
-mkdir -p log 
-for arg
-do python train.py $arg > log/$arg.log 2>&1 &
-done
-echo "FINISH"
-wait

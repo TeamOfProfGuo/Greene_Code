@@ -3,7 +3,6 @@
 # Email: zhang.hang@rutgers.edu
 # Copyright (c) 2017
 ###########################################################################
-
 import os, sys
 BASE_DIR = os.path.dirname(os.path.dirname(os.getcwd()))
 sys.path.append(BASE_DIR)
