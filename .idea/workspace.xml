@@ -20,10 +20,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e454457a-9806-4f5c-8d06-8bcd1de6e490" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/nn/chaatt.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/chaatt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/utils/hyper_param.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/utils/hyper_param.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/experiments/res18_1/train_check.py" beforeDir="false" afterPath="$PROJECT_DIR$/experiments/res18_1/train_check.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiments/res18_2/train.sh" beforeDir="false" afterPath="$PROJECT_DIR$/experiments/res18_2/train.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/temp.py" beforeDir="false" afterPath="$PROJECT_DIR$/temp.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -48,7 +45,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/experiments" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/experiments/res18_2" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
