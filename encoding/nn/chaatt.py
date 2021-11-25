@@ -216,9 +216,6 @@ class AttGate2b(nn.Module):
         elif act_fn == 'tanh':
             self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
             self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Tanh())
-        elif act_fn == 'rsigmoid':
-            self.act_x = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
-            self.act_y = nn.Sequential(nn.ReLU(inplace=True), nn.Sigmoid())
         elif act_fn == 'softmax':
             self.act = nn.Softmax(dim=1)
 
@@ -227,15 +224,15 @@ class AttGate2b(nn.Module):
         batch_size, ch, _, _ = U.size()
 
         ppool = []
-        for s in range(self.ppl):
+        for s in range(self.ppl):  # 0, 1, 2
             ppool.append(F.adaptive_avg_pool2d(U, 2**s).view(batch_size, ch, -1))  # [B, c, s*s]
-        z = torch.cat(tuple(ppool), dim=-1)            # [B, c, 1+9+25]
-        z = z.view(batch_size, -1).contiguous()        # [B, c*35]
+        z = torch.cat(tuple(ppool), dim=-1)            # [B, c, 1+4+16]
+        z = z.view(batch_size, -1).contiguous()        # [B, c*21]
         z = self.fc(z)                                 # [B, d]
 
         z_x = self.fc_x(z)  # [B, c]
         z_y = self.fc_y(z)  # [B, c]
-        if self.act_fn in ['sigmoid', 'tanh', 'rsigmoid']:
+        if self.act_fn in ['sigmoid', 'tanh']:
             w_x = self.act_x(z_x)    # [B, c]
             w_y = self.act_y(z_y)    # [B, c]
         elif self.act_fn == 'softmax':

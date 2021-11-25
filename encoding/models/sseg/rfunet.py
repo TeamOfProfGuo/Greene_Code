@@ -16,7 +16,7 @@ __all__ = ['RFUNet', 'get_rfunet']
 
 class RFUNet(nn.Module):
     def __init__(self, n_classes=21, backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain', aux=None,
-                 fuse_type='1stage', mmfs=None, mrfs=None, auxl='a', dtype='irb', ctr=None, dan=None, out=None, **kwargs):
+                 mmfs=None, mrfs=None, auxl='a', dtype='irb', ctr=None, dan=None, out=None, **kwargs):
         """ axu: '321', '32', '21', '3', '2', '1' """
         super(RFUNet, self).__init__()
         self.ctr, self.dtype, self.backbone, self.root = ctr, dtype, backbone, root
@@ -33,7 +33,7 @@ class RFUNet(nn.Module):
             self.d_layer0 = nn.Sequential(self.d_conv1,
                                           deepcopy(self.base.bn1),
                                           deepcopy(self.base.relu))
-        else:
+        else: # 'resnet50c'
             self.layer0 = nn.Sequential(self.base.conv1, self.base.bn1, self.base.relu,
                                         self.base.conv2, self.base.bn2, self.base.relu,
                                         self.base.conv3, self.base.bn3, self.base.relu,)  # [B, 64, h/2, w/2]
@@ -121,9 +121,9 @@ class RFUNet(nn.Module):
 
 
 def get_rfunet(dataset='nyud', backbone='resnet18', pretrained=True, dilation=1, root='./encoding/models/pretrain',
-               fuse_type='1stage', mrf_fuse_type='1stage', mmfs=None, mrfs=None, auxl='a', **kwargs):
+               mmfs=None, mrfs=None, auxl='a', **kwargs):
     from ...datasets import datasets
     model = RFUNet(datasets[dataset.lower()].NUM_CLASS, backbone, pretrained, dilation=dilation, root=root,
-                   fuse_type=fuse_type, mmfs=mmfs, mrfs=mrfs, auxl=auxl, **kwargs)
+                  mmfs=mmfs, mrfs=mrfs, auxl=auxl, **kwargs)
     return model
 

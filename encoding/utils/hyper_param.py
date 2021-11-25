@@ -55,9 +55,12 @@ def get_args(s, i):
         return None
 
 
-def get_model_args(exp_args):
+def get_model_args(exp_args):    # 有关模型结构的超参
     if '_' in exp_args:
         exp_args = exp_args.split('_')[0]
+
+    # exp_args中有关模型结构超参 默认有两位， 第一位为 mmf, 第二位为 mrf，
+    # 之后的依此为center piece, 模型最后的dan, aux loss, out:模型最后输出segmentation是否用LearnedUpUnit(default)
     mmf_args = module_dict[get_args(exp_args,0)]
     mmfs = 'mmf=' + mmf_args if mmf_args is not None else None
 
@@ -73,7 +76,7 @@ def get_model_args(exp_args):
     return model_args
 
 
-def split_train_args(exp_args):
+def split_train_args(exp_args):  # 有关训练过程的超参
     if '_' in exp_args:
         train_args = exp_args.split('_')[1]
     else:
