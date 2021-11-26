@@ -18,10 +18,12 @@ module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':
                'c': 'PA3a|act_fn=sigmoid',
 
                'd': 'GF0',   # 只有irb
+               'D': 'GF|att=idt|gcf=merge-gc',    # GF: 没有irb,没有pdl, 只有gc
+               'E': 'GF|att=pdl|gcf=merge-add',   # GF: 只有pdl (没有irb, fusion直接用相加）
+
                'e': 'GF|att=pdl|gcf=merge-gc',    # GF: 没有irb, 有pdl 和 gc
-               'E': 'GF|att=pdl|gcf=merge-gc',    # GF: 没有irb, 有pdl 和 gc
-               'f': 'GF1|att=pdl|gcf=merge-gc',   # 备注 gca=None
-               'm': 'GF1|att=pdl|gcf=merge-add',
+               'f': 'GF1|att=pdl|gcf=merge-gc',   # GF: irb + pdl + gc
+               'm': 'GF1|att=pdl|gcf=merge-add',  # GF: irb + pdl + add
                'n': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-1',
                'o': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-2',
                'p': 'GF1|att=pdl|gcf=merge-gc|gca=ppl-3',

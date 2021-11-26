@@ -20,10 +20,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e454457a-9806-4f5c-8d06-8bcd1de6e490" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/nn/chaatt.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/chaatt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoding/nn/fuse.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/nn/fuse.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/encoding/utils/hyper_param.py" beforeDir="false" afterPath="$PROJECT_DIR$/encoding/utils/hyper_param.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiments/res18_1/train_check.py" beforeDir="false" afterPath="$PROJECT_DIR$/experiments/res18_1/train_check.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/temp.py" beforeDir="false" afterPath="$PROJECT_DIR$/temp.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
