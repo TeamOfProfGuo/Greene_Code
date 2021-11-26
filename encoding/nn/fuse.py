@@ -71,9 +71,9 @@ class Level_Fuse(nn.Module):
     def __init__(self, in_ch, shape=None, pre=(False, False), lfb='rbb[2->2]', mrf_att=None, **kwargs):
         super().__init__()
         self.mrf_att = mrf_att
+        if self.mrf_att == 'GF0':       # 只有irb
+            self.mrf_att, pre = None, (True, False)
         if self.mrf_att == 'GF1':
-            self.mrf_att, pre = 'GF', (True, False)
-        if self.mrf_att == 'GF2':
             self.mrf_att, pre = 'GF', (True, False)
         self.pre_flag = pre
         if self.mrf_att is not None:

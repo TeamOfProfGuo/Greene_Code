@@ -650,9 +650,10 @@ class GCGF_Module(nn.Module):
             'se': AttGate1,
             'pdl': PDL_Block
         }
-        gcf = parse_setting(gcf, sep_out='&', sep_in='-')
-        gca = parse_setting(gca, sep_out='&', sep_in='-')
-        self.pre_att = att
+        gcf = parse_setting(gcf, sep_out='&', sep_in='-')  # fusion的选择 （1）直接相加 or (2) general fusion
+        gca = parse_setting(gca, sep_out='&', sep_in='-')  # pdl attention 中的超参 ppl
+
+        self.pre_att = att  # 先对两个分支分别 用attention
         if self.pre_att is not 'idt':
             self.pre1 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gca)
             self.pre2 = module_dict.get(self.pre_att)(in_ch, shape=shape, **gca)
