@@ -130,7 +130,7 @@ class PSK(nn.Module):
     def __init__(self, in_ch, shape=None, dd=8, r=32, ppl=4, act_fn=None, pp=None):
         super().__init__()
         self.pp = pp
-        d = 16 if in_ch<=256 else 32
+        d =  max( int(in_ch/r), 16) #16 if in_ch<=256 else 32
         self.ppl = ppl
 
         self.feats_size = (4 ** ppl - 1) // 3  # f: total feats for descriptor
@@ -650,7 +650,7 @@ class GCGF_Module(nn.Module):
             'se': AttGate1,
             'pdl': PDL_Block
         }
-        gcf = parse_setting(gcf, sep_out='&', sep_in='-')  # fusion的选择 （1）直接相加 or (2) general fusion
+        gcf = parse_setting(gcf, sep_out='&', sep_in='-')  # fusion的选择 （1）直接相加 or (2)
         gca = parse_setting(gca, sep_out='&', sep_in='-')  # pdl attention 中的超参 ppl
 
         self.pre_att = att  # 先对两个分支分别 用attention

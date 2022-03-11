@@ -161,6 +161,8 @@ class Trainer():
 
     def train_n_evaluate(self):
 
+        results = Dict({'miou': [], 'pix_acc': []})
+
         for epoch in range(self.args.epochs):
             # run on one epoch
             print("\n===============train epoch {}/{} ==========================\n".format(epoch, self.args.epochs))
@@ -172,6 +174,9 @@ class Trainer():
             print('\n===============start testing, training epoch {}\n'.format(epoch))
             pixAcc, mIOU, loss = self.validation(epoch)
             print('evaluation pixel acc {}, mean IOU {}, loss {}'.format(pixAcc, mIOU, loss))
+
+            results.miou.append(round(mIOU, 6))
+            results.pix_acc.append(round(pixAcc, 6))
 
             # save the best model
             is_best = False
@@ -186,6 +191,11 @@ class Trainer():
                                    'state_dict': self.model.state_dict(),
                                    'optimizer': self.optimizer.state_dict(),
                                    'best_pred': self.best_pred}, self.args, is_best, path = path)
+
+            final_miou, final_pix_acc = sum(results.miou[-5:]) / 5, sum(results.pix_acc[-5:]) / 5
+            final_result = '\nPerformance of last 5 epochs\n[mIoU]: %4f\n[Pixel_Acc]: %4f\n[Best Pred]: %s\n' % (
+            final_miou, final_pix_acc, self.best_pred)
+            print(final_result)
 
     def validation(self, epoch):
         # Fast test during the training

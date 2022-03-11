@@ -18,7 +18,7 @@ module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':
                'c': 'PA3a|act_fn=sigmoid',
 
                'd': 'GF0',   # 只有irb
-               'D': 'GF|att=idt|gcf=merge-gc',    # GF: 没有irb,没有pdl, 只有gc
+               'D': 'GF|att=idt|gcf=merge-gc',    # GF: 只有gc
                'E': 'GF|att=pdl|gcf=merge-add',   # GF: 只有pdl (没有irb, fusion直接用相加）
 
                'e': 'GF|att=pdl|gcf=merge-gc',    # GF: 没有irb, 有pdl 和 gc
@@ -34,7 +34,16 @@ module_dict = {'1':'CA6', '2':'CA6|act_fn=tanh', '3':'CA2a|act_fn=sigmoid', '4':
                'j': 'PSK|act_fn=soft|pp=a', 'k': 'PSK|act_fn=soft|pp=b', 'l': 'PSK|act_fn=soft|pp=c',
                'r': 'PSK|act_fn=sig|pp=b|ppl=1',
                's': 'PSK|act_fn=sig|pp=b|ppl=2',
-               't': 'PSK|act_fn=sig|pp=b|ppl=3',
+               't': 'PSK|act_fn=sig|pp=b|ppl=3',      # pp=b means U=x+y,  ppl=3 pyramid pooling of 3 levels
+
+               'A': 'PSK|act_fn=sig|pp=b|ppl=3|r=16|dd=8',      # pp=b means U=x+y,  ppl=3 pyramid pooling of 3 levels
+               'B': 'PSK|act_fn=sig|pp=b|ppl=3|r=16|dd=4',
+               'C': 'PSK|act_fn=sig|pp=b|ppl=3|r=16|dd=16',
+
+               'D': 'PSK|act_fn=sig|pp=b|ppl=3|r=8|dd=8',      # pp=b means U=x+y,  ppl=3 pyramid pooling of 3 levels
+               'E': 'PSK|act_fn=sig|pp=b|ppl=3|r=16|dd=8',
+               'F': 'PSK|act_fn=sig|pp=b|ppl=3|r=31|dd=8',
+
                'u': 'PSK|act_fn=sig|pp=b|ppl=4',
 
                '0': None, None:None
